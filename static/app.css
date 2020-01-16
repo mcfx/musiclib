@@ -1,0 +1,6 @@
+.v-tab-no-upper-case .v-tab {
+	text-transform: none !important
+}
+.no-upper-case {
+	text-transform: none !important
+}

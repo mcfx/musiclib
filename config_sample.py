@@ -1,0 +1,11 @@
+TEMP_PATH = '/dev/shm'
+
+SQL_ADDR = ''
+SQL_USER = ''
+SQL_PASSWORD = ''
+SQL_DATABASE = ''
+
+MINIO_ADDR = ''
+MINIO_ACCESS_KEY = ''
+MINIO_SECRET_KEY = ''
+MINIO_BUCKET = ''
