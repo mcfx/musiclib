@@ -1,6 +1,11 @@
 TEMP_PATH = '/dev/shm'
 
-SQL_URI = 'mysql+mysqlconnector://user:pass@ip:port/db'
+SQL_ADDR = ''
+SQL_USER = ''
+SQL_PASSWORD = ''
+SQL_DATABASE = ''
+
+SQL_URI = 'mysql+mysqlconnector://%s:%s@%s/%s'%(SQL_USER, SQL_PASSWORD, SQL_ADDR, SQL_DATABASE)
 
 MINIO_ADDR = ''
 MINIO_ACCESS_KEY = ''

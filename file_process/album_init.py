@@ -293,33 +293,3 @@ def convert_album_to_flac(album, fo, dstfo):
 	for i in os.listdir(dstfo):
 		if re_flac.match(i) is None:
 			os.remove(dstfo + i)
-	
-
-#print(get_album_info_separated('D:/music/A Channel/A-CHANNEL THE ANIMATION Blu-ray Disc BOX -MUSIC CHANNEL- (FLAC)/Disc 1'))
-#print(len(get_album_images('D:/music/Utawarerumono/うたわれるもの 偽りの仮面 & 二人の白皇 歌集 (24bit_96kHz)')))
-#get_album_info_separated('D:/music/Utawarerumono/うたわれるもの 偽りの仮面 & 二人の白皇 歌集')
-#get_album_info_separated('D:/music/Machikado Mazoku/[Hi-Res][190719][shami momo][町かどタンジェント]')
-#get_album_info_separated('D:/music/Kaze ga Tsuyoku Fuiteiru/OP1_320K')
-#get_album_info_separated('D:/music/Gochuumon wa Usagi Desuka/[190926][Gochuumon wa Usagi Desuka Sing For You][Tokuten Hi-res Insert Song DVD][WAV]')
-#get_album_info_separated('D:/music/Granbelm/[2019.09.11] TVアニメ「グランベルム」EDテーマ「願い」／Uru [AAC+MP3]')
-#get_album_info_separated('D:/music/other/[Hi-Res]Dreamy Dream[96kHz／32bit][WAV]')
-#get_album_info_separated('D:/music/Asagao to Kase-san/明日への扉')
-#print(get_album_info_separated(r'D:\music\Kaze ga Tsuyoku Fuiteiru\風強く、君熱く。\風強く、君熱く。'))
-#print(get_album_info_separated(r'D:\music\Carole & Tuesday\OP_ED_LP_Record'))
-#print(get_album_info_fulldisc(r'D:\music\A Channel\BD1',r'D:\music\A Channel\BD1\ANZX-9872.cue'))
-#print(get_album_info_fulldisc(r'D:\music\oreimo\s1op',r'D:\music\oreimo\s1op\ClariS - irony.cue'))
-#print(get_album_info_fulldisc(r'D:\music\saki\[130109] TVアニメ OP2「TSU・BA・SA」収録「Step One!!」[初回限定盤Blu-ray Disc付]／Stylips (tak+jpg)',r'D:\music\saki\[130109] TVアニメ OP2「TSU・BA・SA」収録「Step One!!」[初回限定盤Blu-ray Disc付]／Stylips (tak+jpg)\Step One!!.cue'))
-#print(get_album_info_fulldisc(r'D:\music\Hidan no Aria',r'D:\music\Hidan no Aria\中野愛子 - カメリアの瞳.cue'))
-#print(get_album_info(r'D:\music\Tenki no Ko\UPCH-20520'))
-#get_album_info(r'D:\music\Himawari\blank-note - ひまわり -Pebble in the Sky- Portable オリジナルサウンドトラック Disc1')
-#get_album_info(r'D:\music\Tate no Yuusha no Nariagari\ED2_ototoy')
-#print(get_album_log(r'D:\music\Joshiraku\[120905]TVアニメ『じょしらく』EDテーマ「ニッポン笑顔百景」／桃黒亭一門[APE+CUE+BMP]'))
-#print(get_album_images(r'D:\music\SAO\Alicization\ED'))
-
-#src = r'D:\music\Joshiraku\[120905]TVアニメ『じょしらく』EDテーマ「ニッポン笑顔百景」／桃黒亭一門[APE+CUE+BMP]'
-#src = r'D:\music\ISLAND\ISLAND オリジナルサウンドトラック\Vocal DISC'
-#src = r'D:\music\Machikado Mazoku\[Hi-Res][190719][shami momo][町かどタンジェント]'
-#dst = r'C:\Users\i\Desktop\mu\tflac'
-
-#s = get_album_info(src)
-#convert_album_to_flac(s, src, dst)

@@ -69,15 +69,5 @@ def extract_image(fn):
 
 def convert(src, dst):
 	cmd = ['ffmpeg', '-y', '-i', src, dst]
-	#print(cmd)
 	p = Popen(cmd, stdout = PIPE, stderr = PIPE)
 	so, er = p.communicate()
-	#print(so, er)
-
-#print(probe('D:/music/Kaze ga Tsuyoku Fuiteiru/風強く、君熱く。/01_01_風強く、君熱く。.flac'))
-#probe('D:/music/Utawarerumono/星降る空仰ぎ見て.tak')
-#probe('D:/music/oreimo/s1op/ClariS - irony.tta')
-#probe('D:/music/Gochuumon wa Usagi Desuka/[190926][Gochuumon wa Usagi Desuka Sing For You][Tokuten Hi-res Insert Song DVD][WAV]/02.振り向けば月、いいえ団子。.wav')
-#probe('D:/music/Machikado Mazoku/[Hi-Res][190719][shami momo][町かどタンジェント]/01-町かどタンジェント.flac')
-#extract_image('D:/music/Granbelm/[2019.09.11] TVアニメ「グランベルム」EDテーマ「願い」／Uru [AAC+MP3]/01. 願い.m4a')
-#probe('C:/Users/i/Desktop/soft/ffmpeg/bin/ffmpeg.exe')

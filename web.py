@@ -24,6 +24,7 @@ class CompactArray(types.TypeDecorator):
 		return ','.join(value)
 	
 	def process_result_value(self, value, dialect):
+		if len(value) == 0: return []
 		return value.split(',')
 
 class Album(db.Model):
