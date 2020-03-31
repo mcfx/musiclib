@@ -1,15 +1,101 @@
-import re
+import re, random, traceback
 from copy import deepcopy
 from datetime import timedelta
+
 from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+import sqlalchemy.types as types
+from marshmallow_sqlalchemy import SQLAlchemySchema, SQLAlchemyAutoSchema, auto_field
+from marshmallow import pre_load, fields
+
 import minio_wrapper as mi
-import db_wrapper as db
 from album_init import get_ext
 from file_process import auto_decode
+import config
 
 app = Flask(__name__)
+app.config["SQLALCHEMY_DATABASE_URI"] = config.SQL_URI
+db = SQLAlchemy(app)
 
-import random
+class CompactArray(types.TypeDecorator):
+	impl = types.TEXT
+	
+	def process_bind_param(self, value, dialect):
+		return ','.join(value)
+	
+	def process_result_value(self, value, dialect):
+		return value.split(',')
+
+class Album(db.Model):
+	__tablename__ = 'albums'
+	id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+	title = db.Column(db.String)
+	release_date = db.Column(db.Date)
+	artist = db.Column(db.String)
+	format = db.Column(db.String(20))
+	quality = db.Column(db.String(20))
+	quality_details = db.Column(db.String(50))
+	source = db.Column(db.String)
+	file_source = db.Column(db.String)
+	trusted = db.Column(db.Boolean)
+	log_files = db.Column(CompactArray)
+	cover_files = db.Column(CompactArray)
+	comments = db.Column(db.String)
+
+class Song(db.Model):
+	__tablename__ = 'songs'
+	id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+	album_id = db.Column(db.Integer)
+	track = db.Column(db.Integer)
+	title = db.Column(db.String)
+	artist = db.Column(db.String)
+	duration = db.Column(db.String(8))
+	format = db.Column(db.String(20))
+	quality = db.Column(db.String(20))
+	quality_details = db.Column(db.String(50))
+	file = db.Column(db.String)
+	file_flac = db.Column(db.String)
+
+class KeepSameSerialization(fields.Field):
+	def _serialize(self, value, attr, obj):
+		return value
+	def _deserialize(self, value, attr, obj):
+		return value
+
+class AlbumSchema(SQLAlchemySchema):
+	class Meta:
+		model = Album
+		load_instance = True
+	id = auto_field()
+	title = auto_field()
+	release_date = auto_field()
+	artist = auto_field()
+	format = auto_field()
+	quality = auto_field()
+	quality_details = auto_field()
+	source = auto_field()
+	file_source = auto_field()
+	trusted = auto_field()
+	log_files = KeepSameSerialization()
+	cover_files = KeepSameSerialization()
+	comments = auto_field()
+
+class SongSchema(SQLAlchemySchema):
+	class Meta:
+		model = Song
+		load_instance = True
+	id = auto_field()
+	album_id = auto_field()
+	track = auto_field()
+	title = auto_field()
+	artist = auto_field()
+	duration = auto_field()
+	format = auto_field()
+	quality = auto_field()
+	quality_details = auto_field()
+
+album_schema = AlbumSchema()
+song_schema = SongSchema()
 
 @app.route('/')
 def send_index():
@@ -19,46 +105,55 @@ def send_index():
 @app.route('/api/album/<id>/info')
 def get_album_info(id):
 	id = int(id)
-	res = db.get_albums('where id = %s', id)
-	if len(res) == 0:
+	album = Album.query.filter(Album.id == id).one()
+	if album is None:
 		return jsonify({'status': False})
-	res = res[0]
-	res['release_date'] = res['release_date'].strftime('%Y-%m-%d') if res['release_date'] else None
+	res = album_schema.dump(album)
 	res['cover_files'] = list(map(lambda x: mi.presigned_get_object('covers/' + x, timedelta(hours = 24)), res['cover_files']))
-	rso = db.get_songs('where album_id = %s order by track', id)
-	for i in rso:
-		i.pop('file')
-		i.pop('file_flac')
-	res['songs'] = rso
+	songs = Song.query.filter(Song.album_id == id).order_by(Song.track).all()
+	res['songs'] = []
+	for i in songs:
+		res['songs'].append(song_schema.dump(i))
 	return jsonify({'status': True, 'data': res})
 
 @app.route('/api/album/<id>/update', methods=['POST'])
 def update_album_info(id):
 	id = int(id)
-	s = request.json
-	s['trusted'] = int(s['trusted'])
-	try:
-		so = s['songs']
-		s.pop('songs')
-		db.update_album(id, s)
-		for t in so:
-			db.update_song(t['id'], t)
-	except Exception as e:
-		print(e)
+	album = Album.query.filter(Album.id == id).one()
+	if album is None:
 		return jsonify({'status': False})
+	s = request.json
+	try:
+		album.title = s['title']
+		album.release_date = s['release_date']
+		album.artist = s['artist']
+		album.source = s['source']
+		album.file_source = s['file_source']
+		album.comments = s['comments']
+		album.trusted = int(s['trusted'])
+		for t in s['songs']:
+			song = Song.query.filter(Song.id == t['id']).order_by(Song.track).one()
+			song.track = t['track']
+			song.title = t['title']
+			song.artist = t['artist']
+	except Exception as e:
+		traceback.print_exc()
+		return jsonify({'status': False})
+	db.session.commit()
 	return jsonify({'status': True})
 
 @app.route('/api/song/<id>/link')
 def get_song_link(id):
 	id = int(id)
-	res = db.get_songs('where id = %s', id)
-	if len(res) == 0:
+	song = Song.query.filter(Song.id == id).one()
+	if song is None:
 		return jsonify({'status': False})
-	fn = res[0]['artist'] + ' - ' + res[0]['title']
+	fn = song.artist + ' - ' + song.title
 	data = {}
 	for key in ['file', 'file_flac']:
-		header = {'response-content-disposition': 'attachment; filename="%s.%s"' % (fn, get_ext(res[0][key], ''))}
-		data[key] = mi.presigned_get_object('songs/' + res[0][key], timedelta(hours = 24), header) if res[0][key] else ''
+		mfn = song.__dict__[key]
+		header = {'response-content-disposition': 'attachment; filename="%s.%s"' % (fn, get_ext(mfn, ''))}
+		data[key] = mi.presigned_get_object('songs/' + mfn, timedelta(hours = 24), header) if mfn else ''
 	return jsonify({'status': True, 'data': data})
 
 @app.route('/api/log/<id>')
