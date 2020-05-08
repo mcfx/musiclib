@@ -8,14 +8,17 @@ import sqlalchemy.types as types
 from marshmallow_sqlalchemy import SQLAlchemySchema, SQLAlchemyAutoSchema, auto_field
 from marshmallow import pre_load, fields
 
-import minio_wrapper as mi
-from album_init import get_ext
-from file_process import auto_decode
 import config
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = config.SQL_URI
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
+
+with app.app_context():
+	from album_init import get_ext
+	from file_process import auto_decode
+	import files
 
 class CompactArray(types.TypeDecorator):
 	impl = types.TEXT
@@ -106,11 +109,11 @@ def send_index():
 @app.route('/api/album/<id>/info')
 def get_album_info(id):
 	id = int(id)
-	album = Album.query.filter(Album.id == id).one()
+	album = Album.query.filter(Album.id == id).first()
 	if album is None:
 		return jsonify({'status': False})
 	res = album_schema.dump(album)
-	res['cover_files'] = list(map(lambda x: mi.presigned_get_object('covers/' + x, timedelta(hours = 24)), res['cover_files']))
+	res['cover_files'] = list(map(lambda x: files.get_link(x, 'cover'), res['cover_files']))
 	songs = Song.query.filter(Song.album_id == id).order_by(Song.track).all()
 	res['songs'] = []
 	for i in songs:
@@ -120,7 +123,7 @@ def get_album_info(id):
 @app.route('/api/album/<id>/update', methods=['POST'])
 def update_album_info(id):
 	id = int(id)
-	album = Album.query.filter(Album.id == id).one()
+	album = Album.query.filter(Album.id == id).first()
 	if album is None:
 		return jsonify({'status': False})
 	s = request.json
@@ -146,29 +149,27 @@ def update_album_info(id):
 @app.route('/api/song/<id>/link')
 def get_song_link(id):
 	id = int(id)
-	song = Song.query.filter(Song.id == id).one()
+	song = Song.query.filter(Song.id == id).first()
 	if song is None:
 		return jsonify({'status': False})
 	fn = song.artist + ' - ' + song.title
 	data = {}
 	for key in ['file', 'file_flac']:
 		mfn = song.__dict__[key]
-		header = {'response-content-disposition': 'attachment; filename="%s.%s"' % (fn, get_ext(mfn, ''))}
-		data[key] = mi.presigned_get_object('songs/' + mfn, timedelta(hours = 24), header) if mfn else ''
+		data[key] = files.get_link(mfn, fn + '.' + get_ext(mfn, ''), 86400) if mfn else ''
 	return jsonify({'status': True, 'data': data})
 
 @app.route('/api/log/<id>')
 def get_log(id):
 	if re.match(r'^[a-zA-Z0-9\._]+$', id) is None:
 		return jsonify({'status': False})
-	log = auto_decode.decode(mi.get_object('logs/' + id))
+	log = auto_decode.decode(files.get_file(id))
 	return jsonify({'status': True, 'data': log})
 
 @app.route('/api/log/<id>/download')
 def get_log_download(id):
 	if re.match(r'^[a-zA-Z0-9\._]+$', id) is None:
 		return jsonify({'status': False})
-	header = {'response-content-disposition': 'attachment; filename=%s' % id}
-	return jsonify({'status': True, 'data': mi.presigned_get_object('logs/' + id, timedelta(hours = 24), header)})
+	return jsonify({'status': True, 'data': files.get_link(id, 'album.log')})
 
 app.run(host = '127.0.0.1', port = 1928, debug = True)

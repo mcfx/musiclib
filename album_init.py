@@ -1,7 +1,7 @@
 import os, io, hashlib
 from file_process.album_init import get_album_info, get_album_images, get_album_logs, convert_album_to_flac, tstr_to_time
 from file_process.ffmpeg import probe
-import minio_wrapper as mi
+import files
 import db
 import config
 
@@ -29,7 +29,6 @@ def album_init(fo):
 	for track in album['tracks']:
 		if tstr_to_time(track['start_time'], 0) != 0 or track['end_time'] != '':
 			full_lossy_single = False
-	#print(full_lossy_single)
 	if full_single and (album['quality'] in ['DSD', 'lossy']):
 		for track in album['tracks']:
 			track['filename'] = fo + track['filename']
@@ -54,19 +53,12 @@ def album_init(fo):
 	sql = "insert into albums(title, artist, format, quality, quality_details, source, file_source, log_files, cover_files, comments) "\
 		"values (%(title)s, %(artist)s, %(format)s, %(quality)s, %(quality_details)s, '', '', '', '', %(comments)s)"
 	albumid = db.execute(sql, td).lastrowid
-	#print(albumid)
 	covers_ids = []
 	for cover in covers:
-		fn = str(albumid) + '_' + hashlib.md5(cover).hexdigest()[:10] + '.jpg'
-		fc = io.BytesIO(cover)
-		mi.put_object('covers/' + fn, fc, len(cover))
-		covers_ids.append(fn)
+		covers_ids.append(files.add_bytes(cover, 'jpg'))
 	logs_ids = []
 	for log in logs:
-		fn = str(albumid) + '_' + hashlib.md5(log).hexdigest()[:10] + '.log'
-		fc = io.BytesIO(log)
-		mi.put_object('logs/' + fn, fc, len(log))
-		logs_ids.append(fn)
+		logs_ids.append(files.add_bytes(log, 'log'))
 	db.execute("update albums set log_files = %(lf)s, cover_files = %(cf)s where id = %(id)s", {'id': albumid, 'lf': ','.join(logs_ids), 'cf': ','.join(covers_ids)})
 	for track in album['tracks']:
 		sql = "insert into songs(album_id, track, title, artist, duration, format, quality, quality_details, file, file_flac) "\
@@ -77,7 +69,6 @@ def album_init(fo):
 		td['album_id'] = albumid
 		td['duration'] = get_duration(probe(track['filename']))
 		songid = db.execute(sql, td).lastrowid
-		fn = str(songid) + '.' + get_ext(track['filename'], track['format'])
-		mi.fput_object('songs/' + fn, track['filename'])
+		fn = files.add_file(track['filename'])
 		db.execute("update songs set file = %(fn)s where id = %(id)s", {'id': songid, 'fn': fn})
 	return True

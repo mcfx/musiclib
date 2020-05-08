@@ -7,7 +7,5 @@ SQL_DATABASE = ''
 
 SQL_URI = 'mysql+mysqlconnector://%s:%s@%s/%s'%(SQL_USER, SQL_PASSWORD, SQL_ADDR, SQL_DATABASE)
 
-MINIO_ADDR = ''
-MINIO_ACCESS_KEY = ''
-MINIO_SECRET_KEY = ''
-MINIO_BUCKET = ''
+STORAGE_PATH = ''
+STORAGE_SALT = b''

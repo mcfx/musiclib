@@ -7,6 +7,7 @@ function emit_download(url) {
 
 const opts = { dark: false };
 Vue.use(Vuetify);
+Vue.use(VueViewer.default);
 
 const Index = { template: '<div>test index</div>' }
 
@@ -82,13 +83,77 @@ const Album = {
 			<v-tab> Scans </v-tab>
 			<v-tab> Logs </v-tab>
 			<v-tab> Other files </v-tab>
-			<v-tab-item>todo</v-tab-item>
+			<v-tab-item>
+				<v-card-text>
+				<div v-viewer="{url: 'data-src'}" class="images">
+					<v-row><v-col cols="2" v-for="i in [1,2,3,4,5,6,7,8,9,10]">
+					<v-card flat><img src="https://minio.mcfx.us/musictest/covers/15_28b195c1fa.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=qXCskayCYmJ5v8cZZp6A5A%2F20200401%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20200401T172722Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=10fdea6cc1f019af31856d6986ae48ed45363d2b6abc718b04b8a2f2175b0666" style="width:100%" :key="i"></img>
+					<v-card-text class="text-center">test</v-card-text>
+					</v-card>
+					</v-col></v-row>
+				</div>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+					<v-btn text small>Test</v-btn>
+				</v-card-text>
+			</v-tab-item>
 			<v-tab-item>
 				<v-card-text v-if="log_files.length">
 					<log-file v-for="item in log_files" :key="'log' + item" :filename="item"></log-file>
 				</v-card-text>
 				<v-card-text v-else>
-					There's no log files for this album now.
+					There are no log files for this album now.
 				</v-card-text>
 			</v-tab-item>
 			<v-tab-item>todo3</v-tab-item>
