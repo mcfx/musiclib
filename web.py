@@ -1,4 +1,4 @@
-import re, random, traceback
+import re, json, random, traceback
 from copy import deepcopy
 from datetime import timedelta
 
@@ -16,7 +16,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
 with app.app_context():
-	from album_init import get_ext
+	from file_utils import get_ext
 	from file_process import auto_decode
 	import files
 
@@ -59,6 +59,13 @@ class Song(db.Model):
 	quality_details = db.Column(db.String(50))
 	file = db.Column(db.String)
 	file_flac = db.Column(db.String)
+
+class Scan(db.Model):
+	__tablename__ = 'scans'
+	id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+	name = db.Column(db.String)
+	album_id = db.Column(db.Integer)
+	files = db.Column(db.String)
 
 class KeepSameSerialization(fields.Field):
 	def _serialize(self, value, attr, obj):
@@ -113,7 +120,7 @@ def get_album_info(id):
 	if album is None:
 		return jsonify({'status': False})
 	res = album_schema.dump(album)
-	res['cover_files'] = list(map(lambda x: files.get_link(x, 'cover'), res['cover_files']))
+	res['cover_files'] = list(map(lambda x: files.get_link(x, 'cover.jpg'), res['cover_files']))
 	songs = Song.query.filter(Song.album_id == id).order_by(Song.track).all()
 	res['songs'] = []
 	for i in songs:
@@ -146,6 +153,22 @@ def update_album_info(id):
 	db.session.commit()
 	return jsonify({'status': True})
 
+@app.route('/api/album/<id>/scans')
+def get_album_scans(id):
+	id = int(id)
+	album = Album.query.filter(Album.id == id).first()
+	if album is None:
+		return jsonify({'status': False})
+	scans = Scan.query.filter(Scan.album_id == id).all()
+	res = []
+	for scan in scans:
+		imgs = json.loads(scan.files)
+		tmp = []
+		for fn, thb, src in imgs:
+			tmp.append([fn, files.get_link(thb, fn + '.thumb.png'), files.get_link(src, fn)])
+		res.append({'id': scan.id, 'packname': scan.name, 'files': tmp})
+	return jsonify({'status': True, 'data': res})
+
 @app.route('/api/song/<id>/link')
 def get_song_link(id):
 	id = int(id)
@@ -163,7 +186,7 @@ def get_song_link(id):
 def get_log(id):
 	if re.match(r'^[a-zA-Z0-9\._]+$', id) is None:
 		return jsonify({'status': False})
-	log = auto_decode.decode(files.get_file(id))
+	log = auto_decode.decode(files.get_content(id))
 	return jsonify({'status': True, 'data': log})
 
 @app.route('/api/log/<id>/download')

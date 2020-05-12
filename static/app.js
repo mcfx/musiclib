@@ -14,7 +14,7 @@ const Index = { template: '<div>test index</div>' }
 Vue.component('log-file', {
 	template: `
 	<div>
-		{{ filename }} <v-btn text icon small v-on:click="download_log()"><v-icon>mdi-download</v-icon></v-btn>
+		{{ filename.substr(-12) }} <v-btn text icon small v-on:click="download_log()"><v-icon>mdi-download</v-icon></v-btn>
 		<v-textarea :value="file_content" style="font-size:10px" rows="25" no-resize readonly></v-textarea>
 	</div>
 	`,
@@ -37,6 +37,27 @@ Vue.component('log-file', {
 			})
 		}
 	}
+})
+
+Vue.component('scans', {
+	template: `
+	<div>
+		<v-card-title>{{ scan.packname }}</v-card-title>
+		<v-card-text>
+			<div v-viewer="{url: 'data-src'}" class="images">
+				<v-row>
+					<v-col cols="2" v-for="img in scan.files">
+						<v-card flat>
+							<img :src="img[1]" :data-src="img[2]" style="width:100%" :key="'scan_preview_' + img[1] + '_' + img[2]"></img>
+							<v-card-text class="text-center">{{ img[0] }}</v-card-text>
+						</v-card>
+					</v-col>
+				</v-row>
+			</div>
+		</v-card-text>
+	</div>
+	`,
+	props: ['scan']
 })
 
 const Album = {
@@ -84,68 +105,11 @@ const Album = {
 			<v-tab> Logs </v-tab>
 			<v-tab> Other files </v-tab>
 			<v-tab-item>
-				<v-card-text>
-				<div v-viewer="{url: 'data-src'}" class="images">
-					<v-row><v-col cols="2" v-for="i in [1,2,3,4,5,6,7,8,9,10]">
-					<v-card flat><img src="https://minio.mcfx.us/musictest/covers/15_28b195c1fa.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=qXCskayCYmJ5v8cZZp6A5A%2F20200401%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20200401T172722Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=10fdea6cc1f019af31856d6986ae48ed45363d2b6abc718b04b8a2f2175b0666" style="width:100%" :key="i"></img>
-					<v-card-text class="text-center">test</v-card-text>
-					</v-card>
-					</v-col></v-row>
-				</div>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
-					<v-btn text small>Test</v-btn>
+				<v-card-text v-if="scans.length">
+					<scans v-for="item in scans" :key="'scan' + item.id" :scan="item"></scans>
+				</v-card-text>
+				<v-card-text v-else>
+					There are no scans for this album now.
 				</v-card-text>
 			</v-tab-item>
 			<v-tab-item>
@@ -175,7 +139,8 @@ const Album = {
 			log_files: [],
 			cover_files: [],
 			comments: '',
-			songs: []
+			songs: [],
+			scans: []
 		}
 	},
 	computed: {
@@ -197,6 +162,14 @@ const Album = {
 			axios.get('/api/album/' + this.id + '/info').then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
+			})
+			axios.get('/api/album/' + this.id + '/scans').then(response => {
+				this.scans = response.data.data;
+				/*
+				for (var i = 0; i < scans.length; i++) {
+					//console.log(scans[i]);
+					this.scans.push(scans[i]);
+				}*/
 			})
 		},
 		download_song: function(item) {

@@ -3,6 +3,7 @@ from subprocess import Popen, PIPE
 from . import ffmpeg
 from . import cuereader
 from . import shntool
+from . import auto_decode
 
 def safe_get(_dict, _key, _default = ''):
 	if type(_dict) is dict and _key in _dict:
@@ -207,7 +208,7 @@ def get_album_logs(fo):
 	for i in os.listdir(fo):
 		if i[-3:].lower() == 'log':
 			fs = open(fo + i, 'rb').read()
-			if fs[:3] == b'EAC' or b'Exact Audio Copy' in fs:
+			if fs[:3] == b'EAC' or b'Exact Audio Copy' in fs or 'Exact Audio Copy' in auto_decode.decode(fs):
 				res.append(fs)
 	return res
 

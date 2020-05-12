@@ -3,6 +3,7 @@ import os, hashlib, binascii, shutil, time
 from flask import Flask, request, current_app, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 
+from file_utils import get_ext
 import config
 
 app = None
@@ -20,12 +21,6 @@ class File(db.Model):
 	__tablename__ = 'files'
 	sha512 = db.Column(db.LargeBinary(64), primary_key = True)
 	count = db.Column(db.Integer)
-
-def get_ext(s, _def):
-	p = s.rfind('.')
-	if p >= len(s) - 5:
-		return s[p + 1:]
-	return _def
 
 def add_bytes(s, ext = ''):
 	sha512 = hashlib.sha512(s).digest()
@@ -75,7 +70,7 @@ def purify_hash(s):
 		return s[:p]
 	return s
 
-def get_file(hash):
+def get_content(hash):
 	hash = purify_hash(hash)
 	fo = config.STORAGE_PATH + '/' + hash[:2]
 	fn = fo + '/' + hash[2:]
