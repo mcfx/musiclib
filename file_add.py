@@ -1,4 +1,10 @@
-import os, io, json, hashlib
+import os, io, json, time, shutil, hashlib, datetime
+import subprocess
+from copy import deepcopy
+
+from werkzeug.utils import secure_filename
+
+from threading import Thread, RLock
 from file_process.album_init import get_album_info, get_album_images, get_album_logs, convert_album_to_flac, tstr_to_time
 from file_process.ffmpeg import probe
 from file_process.scans import get_converted_images
@@ -32,7 +38,8 @@ def album_init(fo):
 		dstfo = config.TEMP_PATH
 		if dstfo[-1] != '/':
 			dstfo += '/'
-		clear_cache(config.TEMP_PATH)
+		dstfo += '/album_init/'
+		clear_cache(dstfo)
 		convert_album_to_flac(album, fo, dstfo)
 		for trackid in range(len(album['tracks'])):
 			track = album['tracks'][trackid]
@@ -70,9 +77,13 @@ def album_init(fo):
 
 def add_scans(fo, packname, album_id):
 	if packname == '':
-		packname = fo[fo.rfind('/') + 1:]
-	clear_cache(config.TEMP_PATH)
-	imgs = get_converted_images(fo, config.TEMP_PATH)
+		packname = fo.rstrip('/').rsplit('/', 1)[1]
+	dstfo = config.TEMP_PATH
+	if dstfo[-1] != '/':
+		dstfo += '/'
+	dstfo += '/scans/'
+	clear_cache(dstfo)
+	imgs = get_converted_images(fo, dstfo)
 	img_files = []
 	for fn, src, thb in imgs:
 		srcf = files.add_file(src)
@@ -81,3 +92,121 @@ def add_scans(fo, packname, album_id):
 	imgfs = json.dumps(img_files)
 	db.execute("insert into scans(name, album_id, files) values (%(name)s, %(album_id)s, %(files)s)", {'name': packname, 'album_id': album_id, 'files': imgfs})
 	return True
+
+
+ft_lock = RLock()
+ft_queue = []
+ft_done = []
+ft_current_task = None
+
+def add_file_task(task):
+	ft_lock.acquire()
+	ft_queue.append(task)
+	ft_lock.release()
+
+def get_file_queue():
+	ft_lock.acquire()
+	res = deepcopy(ft_queue)
+	resd = deepcopy(ft_done)
+	ft_lock.release()
+	return {'queue': res, 'done': resd, 'current_task': ft_current_task}
+
+def decompress(archive_path, decompress_path, password = None):
+	cmd = ['7z', 'x', archive_path, '-o' + decompress_path]
+	if password is not None:
+		cmd.append('-p' + password)
+	res = []
+	p = subprocess.Popen(cmd, stderr = subprocess.PIPE, stdout = subprocess.PIPE)
+	def work():
+		stdout, stderr = p.communicate()
+		res.append((p.returncode, stdout, stderr))
+	thread = Thread(target = work)
+	thread.start()
+	thread.join(60) # enough to decompress most files
+	if thread.is_alive():
+		p.terminate()
+		return False, b'Timeout while running 7z'
+	return res[0][0] == 0, res[0][2].decode('utf-8', 'ignore')
+
+def guess_pw(path):
+	tmp = path.rsplit('.', 1)[0]
+	if 'pw_' not in tmp:
+		return None
+	return tmp.rsplit('pw_', 1)[1]
+
+def detect_path(path):
+	t = os.listdir(path)
+	if len(t) == 1 and os.path.isdir(path + '/' + t[0]):
+		return path + '/' + t[0]
+	return path
+
+def try_decompress(archive_path):
+	depath = config.TEMP_PATH
+	if depath[-1] != '/':
+		depath += '/'
+	depath += 'decompress'
+	clear_cache(depath, True)
+	res, err = decompress(archive_path, depath, '') # None pw causes infinite running
+	if res: return True, err, detect_path(depath)
+	pw = guess_pw(archive_path)
+	if pw is None: return res, err, ''
+	clear_cache(depath, True)
+	res2, err2 = decompress(archive_path, depath, pw)
+	if res2: return True, err2, detect_path(depath)
+	return res, err, ''
+
+def file_process_thread():
+	global ft_queue, ft_current_task, ft_done
+	while True:
+		ft_lock.acquire()
+		if len(ft_queue):
+			task = ft_queue[0]
+			ft_queue = ft_queue[1:]
+		else:
+			task = None
+		ft_current_task = deepcopy(task)
+		tm = int(time.time())
+		nd = []
+		for i in ft_done:
+			if tm - i['done_time'] < 86400:
+				nd.append(i)
+		ft_done = nd
+		ft_lock.release()
+		if task is None:
+			time.sleep(0.5)
+			continue
+		if task['type'] in ['album_scan', 'album_log', 'album_other']:
+			path = task['path']
+			task_result = None
+			if task['type'] == 'album_log':
+				log_files = db.select_first("select log_files from albums where id = %(id)s", {'id': task['album_id']})[0]
+				log_new = files.add_file(path)
+				log_files = (log_files + ',' + log_new).strip(',')
+				db.execute("update albums set log_files = %(lf)s where id = %(id)s", {'id': task['album_id'], 'lf': log_files})
+			elif task['type'] == 'album_scan':
+				res, err, depath = try_decompress(path)
+				if res == False:
+					task_result = {'status': False, 'error': err}
+				else:
+					add_scans(depath, '', task['album_id'])
+					task_result = {'status': True}
+			else:
+				task_result = {'status': True}
+			cur_date = datetime.datetime.now().strftime('%Y%m%d')
+			npath = cur_date + '/' + secure_filename(path.rsplit('/', 1)[1])
+			fo = config.BACKUP_PATH.rstrip('\\').rstrip('/') + '/' + cur_date
+			if not os.path.exists(fo):
+				os.mkdir(fo)
+			shutil.move(path, config.BACKUP_PATH.rstrip('\\').rstrip('/') + '/' + npath)
+			db.execute("insert into albums_files(album_id, name, file) values(%(album_id)s, %(name)s, %(file)s)", {'album_id': task['album_id'], 'name': task['filename'], 'file': npath})
+			ft_lock.acquire()
+			ft_done.append({'task': task, 'result': task_result, 'done_time': int(time.time())})
+			ft_lock.release()
+
+def start_process_thread(app):
+	def run():
+		with app.app_context():
+			file_process_thread()
+	ft = Thread(target = run)
+	ft.setDaemon(True)
+	ft.start()

@@ -1,6 +1,7 @@
 import os, hashlib, binascii, shutil, time
 
 from flask import Flask, request, current_app, send_from_directory
+from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 
 from file_utils import get_ext
@@ -105,4 +106,15 @@ def get_file(hash, dlname):
 	hash = binascii.hexlify(hash).decode()
 	fo = config.STORAGE_PATH + '/' + hash[:2]
 	fn = hash[2:]
+	return send_from_directory(fo, fn, as_attachment = True, attachment_filename = dlname)
+
+@app.route('/filebk/<date>/<name>')
+def get_file_backup(date, name):
+	date = str(int(date))
+	name = secure_filename(name)
+	dlname = request.values.get('dlname')
+	fo = config.BACKUP_PATH.rstrip('\\').rstrip('/') + '/' + date
+	fn = name
+	if fn == '' or not os.path.exists(fo + '/' + fn):
+		return ''
 	return send_from_directory(fo, fn, as_attachment = True, attachment_filename = dlname)

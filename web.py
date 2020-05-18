@@ -1,4 +1,4 @@
-import re, json, random, traceback
+import re, json, time, random, traceback
 from copy import deepcopy
 from datetime import timedelta
 
@@ -11,14 +11,18 @@ from marshmallow import pre_load, fields
 import config
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = config.SQL_URI
+
+app.config['SQLALCHEMY_DATABASE_URI'] = config.SQL_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
 with app.app_context():
-	from file_utils import get_ext
+	from file_utils import get_ext, purify_filename
 	from file_process import auto_decode
+	from file_add import add_file_task, get_file_queue, start_process_thread
 	import files
+	
+	start_process_thread(app)
 
 class CompactArray(types.TypeDecorator):
 	impl = types.TEXT
@@ -66,6 +70,13 @@ class Scan(db.Model):
 	name = db.Column(db.String)
 	album_id = db.Column(db.Integer)
 	files = db.Column(db.String)
+
+class AlbumFile(db.Model):
+	__tablename__ = 'albums_files'
+	id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+	album_id = db.Column(db.Integer)
+	name = db.Column(db.String)
+	file = db.Column(db.String)
 
 class KeepSameSerialization(fields.Field):
 	def _serialize(self, value, attr, obj):
@@ -169,6 +180,40 @@ def get_album_scans(id):
 		res.append({'id': scan.id, 'packname': scan.name, 'files': tmp})
 	return jsonify({'status': True, 'data': res})
 
+@app.route('/api/album/<id>/files')
+def get_album_files(id):
+	id = int(id)
+	album = Album.query.filter(Album.id == id).first()
+	if album is None:
+		return jsonify({'status': False})
+	fs = AlbumFile.query.filter(AlbumFile.album_id == id).order_by(AlbumFile.id).all()
+	res = []
+	for fl in fs:
+		res.append({'id': fl.id, 'name': fl.name, 'file': fl.file})
+	return jsonify({'status': True, 'data': res})
+
+@app.route('/api/album/<id>/upload/<tp>', methods = ['POST'])
+def album_upload_files(id, tp):
+	id = int(id)
+	album = Album.query.filter(Album.id == id).first()
+	if album is None:
+		return jsonify({'status': False, 'msg': 'Invalid album id'})
+	if tp not in ['scan', 'log', 'other']:
+		return jsonify({'status': False, 'msg': 'Upload type error'})
+	if 'file' not in request.files:
+		return jsonify({'status': False, 'msg': 'File not found'})
+	file = request.files['file']
+	if file.filename == '':
+		return jsonify({'status': False, 'msg': 'Filename cannot be empty'})
+	if get_ext(file.filename) not in config.TRUSTED_EXTENSIONS:
+		return jsonify({'status': False, 'msg': 'Invalid extension'})
+	ofn = file.filename
+	fn = str(int(time.time() * 1000)) + '%06x' % random.randint(0, 2 ** 24 - 1) + purify_filename(ofn)
+	fp = config.TEMP_PATH.rstrip('\\').rstrip('/') + '/upload/' + fn
+	file.save(fp)
+	add_file_task({'type': 'album_' + tp, 'album_id': id, 'path': fp, 'filename': ofn})
+	return jsonify({'status': True, 'msg': 'Added to queue'})
+
 @app.route('/api/song/<id>/link')
 def get_song_link(id):
 	id = int(id)
@@ -182,6 +227,15 @@ def get_song_link(id):
 		data[key] = files.get_link(mfn, fn + '.' + get_ext(mfn, ''), 86400) if mfn else ''
 	return jsonify({'status': True, 'data': data})
 
+@app.route('/api/scan/<id>/update_name', methods = ['POST'])
+def update_scan_name(id):
+	scan = Scan.query.filter(Scan.id == id).one()
+	if scan is None:
+		return jsonify({'status': False})
+	scan.name = request.json['name']
+	db.session.commit()
+	return jsonify({'status': True})
+
 @app.route('/api/log/<id>')
 def get_log(id):
 	if re.match(r'^[a-zA-Z0-9\._]+$', id) is None:
@@ -194,5 +248,9 @@ def get_log_download(id):
 	if re.match(r'^[a-zA-Z0-9\._]+$', id) is None:
 		return jsonify({'status': False})
 	return jsonify({'status': True, 'data': files.get_link(id, 'album.log')})
+
+@app.route('/api/queue')
+def get_queue_stat():
+	return jsonify(get_file_queue())
 
 app.run(host = '127.0.0.1', port = 1928, debug = True)

@@ -11,6 +11,38 @@ Vue.use(VueViewer.default);
 
 const Index = { template: '<div>test index</div>' }
 
+Vue.component('text-edit', {
+	template: `
+	<span style="width:100%">
+		<v-text-field v-model="text" v-if="editing" @blur="stop_edit" @input="debouncedPush()"></v-text-field>
+		<span v-else> {{ text }} <v-btn text icon small><v-icon @click="start_edit">mdi-pencil</v-icon></v-btn></span>
+	</span>
+	`,
+	props: ['text', 'pushurl', 'pushkey'],
+	data: function() {
+		return {
+			editing: false
+		}
+	},
+	created: function() {
+		this.debouncedPush = _.debounce(() => { this.push() }, 300)
+	},
+	methods: {
+		start_edit: function() {
+			this.editing = true
+		},
+		stop_edit: function() {
+			this.editing = false;
+			this.push();
+		},
+		push: function() {
+			var data = {};
+			data[this.pushkey] = this.text;
+			axios.post(this.pushurl, data);
+		}
+	}
+})
+
 Vue.component('log-file', {
 	template: `
 	<div>
@@ -25,7 +57,6 @@ Vue.component('log-file', {
 		}
 	},
 	created: function() {
-		console.log('ok');
 		axios.get('/api/log/' + this.filename).then(response => {
 			this.file_content = response.data.data;
 		})
@@ -42,7 +73,7 @@ Vue.component('log-file', {
 Vue.component('scans', {
 	template: `
 	<div>
-		<v-card-title>{{ scan.packname }}</v-card-title>
+		<v-card-title><text-edit :text="scan.packname" :pushurl="'/api/scan/' + scan.id + '/update_name'" pushkey="name"></text-edit></v-card-title>
 		<v-card-text>
 			<div v-viewer="{url: 'data-src'}" class="images">
 				<v-row>
@@ -58,6 +89,65 @@ Vue.component('scans', {
 	</div>
 	`,
 	props: ['scan']
+})
+
+Vue.component('file-links', {
+	template: `
+	<div>
+		<v-card-text v-for="item in files">
+			{{ item.name }}
+			<v-btn text icon small v-on:click="download(item)" :key="'other_files_' + item.id"><v-icon>mdi-download</v-icon></v-btn>
+		</v-card-text>
+	</div>
+	`,
+	props: ['albumid'],
+	data: function() {
+		return {
+			files: []
+		}
+	},
+	created: function() {
+		axios.get('/api/album/' + this.albumid + '/files').then(response => {
+			this.files = response.data.data;
+		})
+	},
+	methods: {
+		download: function(item) {
+			emit_download('/filebk/' + item.file + '?dlname=' + item.name)
+		}
+	}
+})
+
+Vue.component('file-upload', {
+	template: `
+	<v-card-text>
+		<v-file-input :label="label" @change="upload($event)"></v-file-input>
+		<v-alert dense :type="alert_type" :icon="alert_icon" v-if="alert_visible"> {{ alert_msg }} </v-alert>
+	</v-card-text>
+	`,
+	props: ['label', 'upload_handler'],
+	data: function() {
+		return {
+			alert_type: '',
+			alert_icon: '',
+			alert_visible: '',
+			alert_msg: ''
+		}
+	},
+	methods: {
+		upload: function(e) {
+			var _this = this;
+			this.upload_handler(e, function(res) {
+				_this.alert_type = res.status ? 'success' : 'error';
+				_this.alert_icon = res.status ? 'mdi-check-circle' : 'mdi-alert';
+				_this.alert_msg = res.msg;
+				_this.alert_visible = true;
+				setTimeout(function() {
+					_this.alert_visible = false;
+				}, 5000);
+			})
+		}
+	}
 })
 
 const Album = {
@@ -104,6 +194,7 @@ const Album = {
 			<v-tab> Scans </v-tab>
 			<v-tab> Logs </v-tab>
 			<v-tab> Other files </v-tab>
+			<v-tab> Add files </v-tab>
 			<v-tab-item>
 				<v-card-text v-if="scans.length">
 					<scans v-for="item in scans" :key="'scan' + item.id" :scan="item"></scans>
@@ -120,7 +211,17 @@ const Album = {
 					There are no log files for this album now.
 				</v-card-text>
 			</v-tab-item>
-			<v-tab-item>todo3</v-tab-item>
+			<v-tab-item>
+				<file-links :albumid="id"></file-links>
+			</v-tab-item>
+			<v-tab-item>
+				<v-card-title>Add scans</v-card-title>
+				<file-upload label="File" :upload_handler="upload('scan')"></file-upload>
+				<v-card-title>Add logs</v-card-title>
+				<file-upload label="File" :upload_handler="upload('log')"></file-upload>
+				<v-card-title>Add other files</v-card-title>
+				<file-upload label="File" :upload_handler="upload('other')"></file-upload>
+			</v-tab-item>
 		</v-tabs>
 	</div>
 	`,
@@ -165,11 +266,6 @@ const Album = {
 			})
 			axios.get('/api/album/' + this.id + '/scans').then(response => {
 				this.scans = response.data.data;
-				/*
-				for (var i = 0; i < scans.length; i++) {
-					//console.log(scans[i]);
-					this.scans.push(scans[i]);
-				}*/
 			})
 		},
 		download_song: function(item) {
@@ -178,8 +274,17 @@ const Album = {
 			})
 		},
 		edit: function() {
-			console.log(this.$route.params.id);
 			this.$router.push({ name: 'album_edit', params: { id: this.id } });
+		},
+		upload: function(tp) {
+			var albumid = this.id;
+			return function(file, callback) {
+				let formData = new FormData();
+				formData.append('file', file);
+				axios.post('/api/album/' + albumid + '/upload/' + tp, formData, {headers: {'Content-Type': 'multipart/form-data'}}).then(response => {
+					callback(response.data);
+				})
+			}
 		}
 	}
 }
@@ -255,7 +360,6 @@ const AlbumEdit = {
 			})
 		},
 		submit: function() {
-			console.log(this.trusted);
 			var tmp = {
 				title: this.title,
 				release_date: this.release_date,

@@ -9,3 +9,5 @@ SQL_URI = 'mysql+mysqlconnector://%s:%s@%s/%s'%(SQL_USER, SQL_PASSWORD, SQL_ADDR
 
 STORAGE_PATH = ''
 STORAGE_SALT = b''
+
+BACKUP_PATH = ''
