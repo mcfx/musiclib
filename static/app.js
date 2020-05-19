@@ -209,7 +209,7 @@ const Album = {
 				</tr>
 			</thead>
 			<tbody>
-				<tr v-for="item in songs" :key="'song' + item.id">
+				<tr v-for="(item, key) in songs" :key="'song' + item.id">
 					<td>{{ item.track }}</td>
 					<td><v-btn text icon small v-on:click="setPlayList(songs, key)"><v-icon>mdi-play-circle</v-icon></v-btn></td>
 					<td><v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn></td>
