@@ -5,6 +5,35 @@ function emit_download(url) {
 	aTag.click()
 }
 
+const ap = new APlayer({
+	container: document.getElementById('aplayer'),
+	fixed: true,
+	preload: 'auto',
+	volume: 0.7,
+	mutex: true,
+	listFolded: true,
+	listMaxHeight: 90,
+	audio: []
+});
+
+function setPlayList(tracks, cur_play = 0) {
+	axios.get('/api/songs/' + tracks.map(track => track.id).join() + '/play').then(response => {
+		var files = response.data.data.files, covers = response.data.data.covers, al = [];
+		try { ap.list.clear(); } catch(e) {}
+		for (var i = 0; i < tracks.length; i++) {
+			al.push({
+				name: tracks[i].title,
+				artist: tracks[i].artist,
+				url: files[i],
+				cover: covers[i]
+			})
+		}
+		ap.list.add(al);
+		ap.list.switch(cur_play);
+		ap.play();
+	})
+}
+
 const opts = { dark: false };
 Vue.use(Vuetify);
 Vue.use(VueViewer.default);
@@ -182,7 +211,7 @@ const Album = {
 			<tbody>
 				<tr v-for="item in songs" :key="'song' + item.id">
 					<td>{{ item.track }}</td>
-					<td><v-btn text icon small><v-icon>mdi-play-circle</v-icon></v-btn></td>
+					<td><v-btn text icon small v-on:click="setPlayList(songs, key)"><v-icon>mdi-play-circle</v-icon></v-btn></td>
 					<td><v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn></td>
 					<td>{{ item.title }}</td>
 					<td>{{ item.duration }}</td>
@@ -377,11 +406,72 @@ const AlbumEdit = {
 	}
 }
 
+const Playlist = {
+	template: `
+	<div>
+		<v-row>
+			<v-card-title> {{ title }} </v-card-title>
+			<v-card-text> {{ description }} </v-card-text>
+		</v-row>
+		<v-simple-table>
+			<thead>
+				<tr>
+					<th class="text-left">#</th>
+					<th class="text-left"></th>
+					<th class="text-left"></th>
+					<th class="text-left">Title</th>
+					<th class="text-left">Duration</th>
+					<th class="text-left">Artist</th>
+					<th class="text-left">Album</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr v-for="(item, key) in tracks" :key="'track' + item.id">
+					<td>{{ key + 1 }}</td>
+					<td><v-btn text icon small v-on:click="setPlayList(tracks, key)"><v-icon>mdi-play-circle</v-icon></v-btn></td>
+					<td><v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn></td>
+					<td>{{ item.title }}</td>
+					<td>{{ item.duration }}</td>
+					<td>{{ item.artist }}</td>
+					<td><router-link :to="'/album/' + item.album_id">{{ item.album_title }}</a></td>
+				</tr>
+			</tbody>
+		</v-simple-table>
+	</div>
+	`,
+	data: function() {
+		return {
+			id: -1,
+			title: '',
+			description: '',
+			tracks: []
+		}
+	},
+	created: function() {
+		this.id = this.$route.params.id;
+		this.init();
+	},
+	methods: {
+		init: function() {
+			axios.get('/api/playlist/' + this.id + '/info').then(response => {
+				for (key in response.data.data)
+					this[key] = response.data.data[key];
+			})
+		},
+		download_song: function(item) {
+			axios.get('/api/song/' + item.id + '/link').then(response => {
+				emit_download(response.data.data.file);
+			})
+		}
+	}
+}
+
 const router = new VueRouter({
 	routes: [
 		{ path: '/', component: Index },
 		{ path: '/album/:id', component: Album, name: 'album' },
-		{ path: '/album/:id/edit', component: AlbumEdit, name: 'album_edit' }
+		{ path: '/album/:id/edit', component: AlbumEdit, name: 'album_edit' },
+		{ path: '/playlist/:id', component: Playlist, name: 'playlist' },
 	]
 })
 

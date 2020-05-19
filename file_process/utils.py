@@ -18,6 +18,6 @@ def clear_cache(fo, clear_folders = False):
 def purify_filename(s):
 	r = ''
 	for i in s:
-		if ord(i) >= 32:
+		if ord(i) >= 32 and i not in '<>/\\:*?"|':
 			r += i
 	return r

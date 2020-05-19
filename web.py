@@ -27,12 +27,16 @@ with app.app_context():
 class CompactArray(types.TypeDecorator):
 	impl = types.TEXT
 	
+	def __init__(self, basetype = str):
+		types.TypeDecorator.__init__(self)
+		self.basetype = basetype
+	
 	def process_bind_param(self, value, dialect):
-		return ','.join(value)
+		return ','.join(map(str, value))
 	
 	def process_result_value(self, value, dialect):
 		if len(value) == 0: return []
-		return value.split(',')
+		return list(map(self.basetype, value.split(',')))
 
 class Album(db.Model):
 	__tablename__ = 'albums'
@@ -70,6 +74,13 @@ class Scan(db.Model):
 	name = db.Column(db.String)
 	album_id = db.Column(db.Integer)
 	files = db.Column(db.String)
+
+class Playlist(db.Model):
+	__tablename__ = 'playlists'
+	id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+	title = db.Column(db.String)
+	description = db.Column(db.String)
+	tracklist = db.Column(CompactArray(int))
 
 class AlbumFile(db.Model):
 	__tablename__ = 'albums_files'
@@ -227,9 +238,33 @@ def get_song_link(id):
 		data[key] = files.get_link(mfn, fn + '.' + get_ext(mfn, ''), 86400) if mfn else ''
 	return jsonify({'status': True, 'data': data})
 
+@app.route('/api/songs/<ids>/play')
+def get_songs_play(ids):
+	ids = list(map(int, ids.split(',')))
+	res_files = []
+	covers = []
+	for id in ids:
+		song = Song.query.filter(Song.id == id).first()
+		if song is None:
+			return jsonify({'status': False})
+		fn = song.artist + ' - ' + song.title
+		link = ''
+		for key in ['file_flac', 'file']:
+			mfn = song.__dict__[key]
+			if mfn:
+				link = files.get_link(mfn, fn + '.' + get_ext(mfn, ''), 86400)
+				break
+		res_files.append(link)
+		album = Album.query.filter(Album.id == song.album_id).one()
+		if len(album.cover_files):
+			covers.append(files.get_link(album.cover_files[0], 'cover.jpg'))
+		else:
+			covers.append('')
+	return jsonify({'status': True, 'data': {'files': res_files, 'covers': covers}})
+
 @app.route('/api/scan/<id>/update_name', methods = ['POST'])
 def update_scan_name(id):
-	scan = Scan.query.filter(Scan.id == id).one()
+	scan = Scan.query.filter(Scan.id == id).first()
 	if scan is None:
 		return jsonify({'status': False})
 	scan.name = request.json['name']
@@ -248,6 +283,23 @@ def get_log_download(id):
 	if re.match(r'^[a-zA-Z0-9\._]+$', id) is None:
 		return jsonify({'status': False})
 	return jsonify({'status': True, 'data': files.get_link(id, 'album.log')})
+
+@app.route('/api/playlist/<id>/info')
+def get_playlist_info(id):
+	id = int(id)
+	playlist = Playlist.query.filter(Playlist.id == id).first()
+	if playlist is None:
+		return jsonify({'status': False})
+	res = {'id': playlist.id, 'title': playlist.title, 'description': playlist.description, 'tracks': []}
+	for i in playlist.tracklist:
+		song = Song.query.filter(Song.id == i).first()
+		if song is None:
+			return jsonify({'status': False})
+		album = Album.query.filter(Album.id == song.album_id).one()
+		song = song_schema.dump(song)
+		song['album_title'] = album.title
+		res['tracks'].append(song)
+	return jsonify({'status': True, 'data': res})
 
 @app.route('/api/queue')
 def get_queue_stat():
