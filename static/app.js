@@ -34,6 +34,13 @@ function setPlayList(tracks, cur_play = 0) {
 	})
 }
 
+function getFormatString(album) {
+	var tmp = album.quality + (album.quality_details ? ' (' + album.quality_details + ')' : '');
+	if (!tmp) return album.format;
+	if (!album.format) return tmp;
+	return album.format + ', ' + tmp;
+}
+
 const opts = { dark: false };
 Vue.use(Vuetify);
 Vue.use(VueViewer.default);
@@ -54,7 +61,7 @@ Vue.component('text-edit', {
 		}
 	},
 	created: function() {
-		this.debouncedPush = _.debounce(() => { this.push() }, 300)
+		this.debouncedPush = _.debounce(() => { this.push() }, 150)
 	},
 	methods: {
 		start_edit: function() {
@@ -191,11 +198,11 @@ Vue.component('add-playlist', {
 						<thead>
 							<tr>
 								<th class="text-left">Title</th>
-								<th class="text-left">Count</th>
+								<th class="text-left">Length</th>
 							</tr>
 						</thead>
 						<tbody style="cursor:pointer">
-							<tr v-for="(item, key) in playlists" :key="'playlist' + item.id" @click="addTo(item)">
+							<tr v-for="(item, key) in playlists" :key="'playlistadd' + item.id" @click="addTo(item)">
 								<td>{{ item.title }}</td>
 								<td>{{ item.len_tracks }}</td>
 							</tr>
@@ -206,7 +213,6 @@ Vue.component('add-playlist', {
 		</v-dialog>
 	</div>
 	`,
-	props: [],
 	data: function() {
 		return {
 			show: false,
@@ -215,7 +221,7 @@ Vue.component('add-playlist', {
 		}
 	},
 	created: function() {
-		this.debouncedSearch = _.debounce(() => { this.doSearch() }, 300)
+		this.debouncedSearch = _.debounce(() => { this.doSearch() }, 150)
 	},
 	methods: {
 		add: function(track) {
@@ -246,7 +252,7 @@ const Album = {
 				<v-card-text>
 					Artist: {{ artist }} <br>
 					Release date: {{ release_date || 'Unknown' }} <br>
-					Format: {{ format + ', ' + quality + ' (' + quality_details + ')'}} <br>
+					Format: {{ getFormatString(this) }} <br>
 					Source: {{ source && file_source ? source + ', ' + file_source : source || file_source || 'Unknown' }} <br>
 					Trusted: {{ trusted ? 'yes' : 'no' }} <br>
 					Comments: {{ comments }} <br>
@@ -279,10 +285,27 @@ const Album = {
 			</tbody>
 		</v-simple-table>
 		<v-tabs vertical class="v-tab-no-upper-case">
+			<v-tab> Covers </v-tab>
 			<v-tab> Scans </v-tab>
 			<v-tab> Logs </v-tab>
 			<v-tab> Other files </v-tab>
 			<v-tab> Add files </v-tab>
+			<v-tab-item>
+				<v-card-text v-if="cover_files.length">
+					<div v-viewer class="images">
+						<v-row>
+							<v-col cols="2" v-for="item in cover_files">
+								<v-card flat>
+									<img :src="item" style="width:100%" :key="'cover' + item"></img>
+								</v-card>
+							</v-col>
+						</v-row>
+					</div>
+				</v-card-text>
+				<v-card-text v-else>
+					There are no covers for this album now.
+				</v-card-text>
+			</v-tab-item>
 			<v-tab-item>
 				<v-card-text v-if="scans.length">
 					<scans v-for="item in scans" :key="'scan' + item.id" :scan="item"></scans>
@@ -303,11 +326,13 @@ const Album = {
 				<file-links :albumid="id"></file-links>
 			</v-tab-item>
 			<v-tab-item>
+				<v-card-title>Add cover</v-card-title>
+				<file-upload label="File" :upload_handler="upload('cover')"></file-upload>
 				<v-card-title>Add scans</v-card-title>
 				<file-upload label="File" :upload_handler="upload('scan')"></file-upload>
-				<v-card-title>Add logs</v-card-title>
+				<v-card-title>Add log</v-card-title>
 				<file-upload label="File" :upload_handler="upload('log')"></file-upload>
-				<v-card-title>Add other files</v-card-title>
+				<v-card-title>Add other file</v-card-title>
 				<file-upload label="File" :upload_handler="upload('other')"></file-upload>
 			</v-tab-item>
 		</v-tabs>
@@ -468,6 +493,47 @@ const AlbumEdit = {
 	}
 }
 
+const Albums = {
+	template: `
+	<div>
+		<v-text-field v-model="search" label="Search for albums" @input="debouncedSearch()"></v-text-field>
+		<v-simple-table>
+			<thead>
+				<tr>
+					<th class="text-left">Title</th>
+					<th class="text-left">Artist</th>
+					<th class="text-left">Format</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr v-for="(item, key) in albums" :key="'album' + item.id">
+					<td><router-link :to="'/album/' + item.id">{{ item.title }}</router-link></td>
+					<td>{{ item.artist }}</td>
+					<td>{{ getFormatString(item) }}</td>
+				</tr>
+			</tbody>
+		</v-simple-table>
+	</div>
+	`,
+	data: function() {
+		return {
+			search: '',
+			albums: [],
+		}
+	},
+	created: function() {
+		this.debouncedSearch = _.debounce(() => { this.doSearch() }, 150);
+		this.doSearch();
+	},
+	methods: {
+		doSearch: function() {
+			axios.get('/api/album/search', {params: {query: this.search}}).then(response => {
+				this.albums = response.data.data;
+			})
+		}
+	}
+}
+
 const Playlist = {
 	template: `
 	<div>
@@ -479,7 +545,7 @@ const Playlist = {
 			<thead>
 				<tr>
 					<th class="text-left">#</th>
-					<th class="text-left" style="min-width:100px"></th>
+					<th class="text-left" style="min-width:130px"></th>
 					<th class="text-left">Title</th>
 					<th class="text-left">Duration</th>
 					<th class="text-left">Artist</th>
@@ -492,6 +558,7 @@ const Playlist = {
 					<td>
 						<v-btn text icon small v-on:click="setPlayList(tracks, key)"><v-icon>mdi-play-circle</v-icon></v-btn>
 						<v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn>
+						<v-btn text icon small v-on:click="$refs.add_playlist.add(item)"><v-icon>mdi-folder-plus</v-icon></v-btn>
 					</td>
 					<td>{{ item.title }}</td>
 					<td>{{ item.duration }}</td>
@@ -500,6 +567,7 @@ const Playlist = {
 				</tr>
 			</tbody>
 		</v-simple-table>
+		<add-playlist ref="add_playlist"></add-playlist>
 	</div>
 	`,
 	data: function() {
@@ -606,13 +674,153 @@ const PlaylistEdit = {
 	}
 }
 
+const Playlists = {
+	template: `
+	<div>
+		<v-text-field v-model="search" label="Search for playlists" @input="debouncedSearch()"></v-text-field>
+		<v-simple-table>
+			<thead>
+				<tr>
+					<th class="text-left">Title</th>
+					<th class="text-left">Length</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr v-for="(item, key) in playlists" :key="'playlist' + item.id">
+					<td><router-link :to="'/playlist/' + item.id">{{ item.title }}</router-link></td>
+					<td>{{ item.len_tracks }}</td>
+				</tr>
+			</tbody>
+		</v-simple-table>
+	</div>
+	`,
+	data: function() {
+		return {
+			search: '',
+			playlists: [],
+		}
+	},
+	created: function() {
+		this.debouncedSearch = _.debounce(() => { this.doSearch() }, 150);
+		this.doSearch();
+	},
+	methods: {
+		doSearch: function() {
+			axios.get('/api/playlist/search', {params: {query: this.search}}).then(response => {
+				this.playlists = response.data.data;
+			})
+		}
+	}
+}
+
+const Manage = {
+	template: `
+	<div>
+		<v-card-title>Upload album</v-card-title>
+		<file-upload label="File" :upload_handler="upload_album"></file-upload>
+		<v-card-title>Current task</v-card-title>
+		<div>
+			<v-simple-table v-if="queue.current_task">
+				<thead>
+					<tr>
+						<th class="text-left">Album id</th>
+						<th class="text-left">Filename</th>
+						<th class="text-left">Path</th>
+						<th class="text-left">Type</th>
+					</tr>
+				</thead>
+				<tbody>
+					<td>{{ queue.current_task.album_id }}</td>
+					<td>{{ queue.current_task.filename }}</td>
+					<td>{{ queue.current_task.path }}</td>
+					<td>{{ queue.current_task.type }}</td>
+				</tbody>
+			</v-simple-table>
+			<v-card-text v-else>No current task</v-card-text>
+		</div>
+		<v-card-title>Task queue</v-card-title>
+		<v-simple-table>
+			<thead>
+				<tr>
+					<th class="text-left">Album id</th>
+					<th class="text-left">Filename</th>
+					<th class="text-left">Path</th>
+					<th class="text-left">Type</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr v-for="(item, key) in queue.queue" :key="'task' + key">
+					<td>{{ item.album_id }}</td>
+					<td>{{ item.filename }}</td>
+					<td>{{ item.path }}</td>
+					<td>{{ item.type }}</td>
+				</tr>
+			</tbody>
+		</v-simple-table>
+		<v-card-title>Done tasks</v-card-title>
+		<v-simple-table>
+			<thead>
+				<tr>
+					<th class="text-left">Album id</th>
+					<th class="text-left">Filename</th>
+					<th class="text-left">Path</th>
+					<th class="text-left">Type</th>
+					<th class="text-left">Time</th>
+					<th class="text-left">Result</th>
+					<th class="text-left">Error</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr v-for="(item, key) in queue.done" :key="'taskd' + key">
+					<td>{{ item.album_id }}</td>
+					<td>{{ item.task.filename }}</td>
+					<td>{{ item.task.path }}</td>
+					<td>{{ item.task.type }}</td>
+					<td>{{ item.done_time }}</td>
+					<td>{{ item.result.status }}</td>
+					<td>{{ item.result.error }}</td>
+				</tr>
+			</tbody>
+		</v-simple-table>
+	</div>
+	`,
+	data: function() {
+		return {
+			queue: {current_task: null, done: [], queue: []}
+		}
+	},
+	created: function() {
+		this.init();
+	},
+	methods: {
+		init: function() {
+			axios.get('/api/queue').then(response => {
+				this.queue = response.data;
+				setTimeout(this.init, 2000);
+			})
+		},
+		upload_album: function(file, callback) {
+			var _this = this;
+			let formData = new FormData();
+			formData.append('file', file);
+			axios.post('/api/album/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}}).then(response => {
+				callback(response.data);
+				_this.init();
+			})
+		}
+	}
+}
+
 const router = new VueRouter({
 	routes: [
 		{ path: '/', component: Index },
 		{ path: '/album/:id', component: Album, name: 'album', meta: {title: route => { return route.params.id + ' - Albums' }}},
 		{ path: '/album/:id/edit', component: AlbumEdit, name: 'album_edit', meta: {title: route => { return route.params.id + ' - Edit - Albums' }}},
+		{ path: '/albums', component: Albums, name: 'albums', meta: {title: 'Albums' }},
 		{ path: '/playlist/:id', component: Playlist, name: 'playlist', meta: {title: route => { return route.params.id + ' - Playlists' }}},
 		{ path: '/playlist/:id/edit', component: PlaylistEdit, name: 'playlist_edit', meta: {title: route => { return route.params.id + ' - Edit - Playlists' }}},
+		{ path: '/playlists', component: Playlists, name: 'playlists', meta: {title: 'Playlists' }},
+		{ path: '/manage', component: Manage, name: 'manage', meta: {title: 'Manage' }},
 	]
 })
 

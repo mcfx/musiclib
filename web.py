@@ -138,6 +138,19 @@ def send_index():
 	#return app.send_static_file('index.html')
 	return open('static/index.html').read().replace('app.js', 'app.js?' + str(random.random())).replace('app.css', 'app.css?' + str(random.random()))
 
+@app.route('/api/album/search')
+def search_album():
+	query = request.values.get('query')
+	reqs = [Album.title, Album.artist, Album.comments]
+	req = reduce(or_, map(lambda y: reduce(and_, map(lambda x: y.like('%' + x + '%'), query.split()), True), reqs))
+	albums = Album.query.filter(req).order_by(Album.id).all()
+	res = []
+	for album in albums:
+		tmp = album_schema.dump(album)
+		tmp.pop('cover_files')
+		res.append(tmp)
+	return jsonify({'status': True, 'data': res})
+
 @app.route('/api/album/<id>/info')
 def get_album_info(id):
 	id = int(id)
@@ -212,7 +225,7 @@ def album_upload_files(id, tp):
 	album = Album.query.filter(Album.id == id).first()
 	if album is None:
 		return jsonify({'status': False, 'msg': 'Invalid album id'})
-	if tp not in ['scan', 'log', 'other']:
+	if tp not in ['scan', 'log', 'other', 'cover']:
 		return jsonify({'status': False, 'msg': 'Upload type error'})
 	if 'file' not in request.files:
 		return jsonify({'status': False, 'msg': 'File not found'})
@@ -226,6 +239,22 @@ def album_upload_files(id, tp):
 	fp = config.TEMP_PATH.rstrip('\\').rstrip('/') + '/upload/' + fn
 	file.save(fp)
 	add_file_task({'type': 'album_' + tp, 'album_id': id, 'path': fp, 'filename': ofn})
+	return jsonify({'status': True, 'msg': 'Added to queue'})
+
+@app.route('/api/album/upload', methods = ['POST'])
+def album_upload():
+	if 'file' not in request.files:
+		return jsonify({'status': False, 'msg': 'File not found'})
+	file = request.files['file']
+	if file.filename == '':
+		return jsonify({'status': False, 'msg': 'Filename cannot be empty'})
+	if get_ext(file.filename) not in config.TRUSTED_EXTENSIONS:
+		return jsonify({'status': False, 'msg': 'Invalid extension'})
+	ofn = file.filename
+	fn = str(int(time.time() * 1000)) + '%06x' % random.randint(0, 2 ** 24 - 1) + purify_filename(ofn)
+	fp = config.TEMP_PATH.rstrip('\\').rstrip('/') + '/upload/' + fn
+	file.save(fp)
+	add_file_task({'type': 'new_album', 'path': fp, 'filename': ofn})
 	return jsonify({'status': True, 'msg': 'Added to queue'})
 
 @app.route('/api/song/<id>/link')

@@ -26,7 +26,7 @@ def album_init(fo):
 		fo += '/'
 	album = get_album_info(fo)
 	if album is None:
-		return False
+		return False, None
 	full_single = True
 	for track in album['tracks']:
 		if tstr_to_time(track['start_time'], 0) != 0 or track['end_time'] != '':
@@ -73,7 +73,7 @@ def album_init(fo):
 		songid = db.execute(sql, td).lastrowid
 		fn = files.add_file(track['filename'])
 		db.execute("update songs set file = %(fn)s where id = %(id)s", {'id': songid, 'fn': fn})
-	return True
+	return True, albumid
 
 def add_scans(fo, packname, album_id):
 	if packname == '':
@@ -155,6 +155,15 @@ def try_decompress(archive_path):
 	if res2: return True, err2, detect_path(depath)
 	return res, err, ''
 
+def backup_album_file(path, album_id, filename):
+	cur_date = datetime.datetime.now().strftime('%Y%m%d')
+	npath = cur_date + '/' + secure_filename(path.rsplit('/', 1)[1])
+	fo = config.BACKUP_PATH.rstrip('\\').rstrip('/') + '/' + cur_date
+	if not os.path.exists(fo):
+		os.mkdir(fo)
+	shutil.move(path, config.BACKUP_PATH.rstrip('\\').rstrip('/') + '/' + npath)
+	db.execute("insert into albums_files(album_id, name, file) values(%(album_id)s, %(name)s, %(file)s)", {'album_id': album_id, 'name': filename, 'file': npath})
+
 def file_process_thread():
 	global ft_queue, ft_current_task, ft_done
 	while True:
@@ -175,7 +184,7 @@ def file_process_thread():
 		if task is None:
 			time.sleep(0.5)
 			continue
-		if task['type'] in ['album_scan', 'album_log', 'album_other']:
+		if task['type'] in ['album_scan', 'album_log', 'album_other', 'album_cover']:
 			path = task['path']
 			task_result = None
 			if task['type'] == 'album_log':
@@ -190,15 +199,30 @@ def file_process_thread():
 				else:
 					add_scans(depath, '', task['album_id'])
 					task_result = {'status': True}
+			elif task['type'] == 'album_cover':
+				cover_files = db.select_first("select cover_files from albums where id = %(id)s", {'id': task['album_id']})[0]
+				cover_new = files.add_file(path)
+				cover_files = (cover_files + ',' + cover_new).strip(',')
+				db.execute("update albums set cover_files = %(cf)s where id = %(id)s", {'id': task['album_id'], 'cf': cover_files})
 			else:
 				task_result = {'status': True}
-			cur_date = datetime.datetime.now().strftime('%Y%m%d')
-			npath = cur_date + '/' + secure_filename(path.rsplit('/', 1)[1])
-			fo = config.BACKUP_PATH.rstrip('\\').rstrip('/') + '/' + cur_date
-			if not os.path.exists(fo):
-				os.mkdir(fo)
-			shutil.move(path, config.BACKUP_PATH.rstrip('\\').rstrip('/') + '/' + npath)
-			db.execute("insert into albums_files(album_id, name, file) values(%(album_id)s, %(name)s, %(file)s)", {'album_id': task['album_id'], 'name': task['filename'], 'file': npath})
+			backup_album_file(path, task['album_id'], task['filename'])
+			ft_lock.acquire()
+			ft_done.append({'task': task, 'result': task_result, 'done_time': int(time.time())})
+			ft_lock.release()
+		elif task['type'] == 'new_album':
+			path = task['path']
+			task_result = None
+			res, err, depath = try_decompress(path)
+			if res == False:
+				task_result = {'status': False, 'error': err}
+			else:
+				res, albumid = album_init(depath)
+				if res:
+					task_result = {'status': True}
+					backup_album_file(path, albumid, task['filename'])
+				else:
+					task_result = {'status': False, 'error': 'Failed to get album info'}
 			ft_lock.acquire()
 			ft_done.append({'task': task, 'result': task_result, 'done_time': int(time.time())})
 			ft_lock.release()
