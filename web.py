@@ -1,9 +1,11 @@
 import re, json, time, random, traceback
 from copy import deepcopy
 from datetime import timedelta
+from functools import reduce
 
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import or_, and_
 import sqlalchemy.types as types
 from marshmallow_sqlalchemy import SQLAlchemySchema, SQLAlchemyAutoSchema, auto_field
 from marshmallow import pre_load, fields
@@ -81,6 +83,7 @@ class Playlist(db.Model):
 	title = db.Column(db.String)
 	description = db.Column(db.String)
 	tracklist = db.Column(CompactArray(int))
+	last_update = db.Column(db.Integer)
 
 class AlbumFile(db.Model):
 	__tablename__ = 'albums_files'
@@ -284,6 +287,15 @@ def get_log_download(id):
 		return jsonify({'status': False})
 	return jsonify({'status': True, 'data': files.get_link(id, 'album.log')})
 
+@app.route('/api/playlist/search')
+def search_playlist():
+	query = request.values.get('query')
+	req_title = reduce(and_, map(lambda x: Playlist.title.like('%' + x + '%'), query.split()), True)
+	req_description = reduce(and_, map(lambda x: Playlist.description.like('%' + x + '%'), query.split()), True)
+	playlists = Playlist.query.filter(or_(req_title, req_description)).order_by(Playlist.last_update.desc()).all()
+	res = list(map(lambda x: {'id': x.id, 'title': x.title, 'description': x.description, 'len_tracks': len(x.tracklist)}, playlists))
+	return jsonify({'status': True, 'data': res})
+
 @app.route('/api/playlist/<id>/info')
 def get_playlist_info(id):
 	id = int(id)
@@ -300,6 +312,25 @@ def get_playlist_info(id):
 		song['album_title'] = album.title
 		res['tracks'].append(song)
 	return jsonify({'status': True, 'data': res})
+
+@app.route('/api/playlist/<id>/addtrack', methods = ['POST'])
+def playlist_addtrack(id):
+	id = int(id)
+	playlist = Playlist.query.filter(Playlist.id == id).first()
+	if playlist is None:
+		return jsonify({'status': False})
+	s = request.json
+	if 'song_id' not in s:
+		return jsonify({'status': False})
+	sid = s['song_id']
+	if Song.query.filter(Song.id == sid).first() is None:
+		return jsonify({'status': False})
+	#playlist.tracklist.append(sid)
+	playlist.tracklist = playlist.tracklist + [sid]
+	print(playlist.tracklist)
+	playlist.last_update = int(time.time())
+	db.session.commit()
+	return jsonify({'status': True})
 
 @app.route('/api/playlist/<id>/update', methods = ['POST'])
 def update_playlist_info(id):
@@ -320,6 +351,7 @@ def update_playlist_info(id):
 	except Exception as e:
 		traceback.print_exc()
 		return jsonify({'status': False})
+	playlist.last_update = int(time.time())
 	db.session.commit()
 	return jsonify({'status': True})
 

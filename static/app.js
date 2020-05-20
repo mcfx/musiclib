@@ -179,6 +179,63 @@ Vue.component('file-upload', {
 	}
 })
 
+Vue.component('add-playlist', {
+	template: `
+	<div data-app>
+		<v-dialog v-model="show" max-width="500" max-height="600">
+			<v-card style="min-height:600px">
+				<v-card-title>Choose target playlist</v-card-title>
+				<v-card-text>
+					<v-text-field v-model="search" label="Search for playlists" @input="debouncedSearch()"></v-text-field>
+					<v-simple-table>
+						<thead>
+							<tr>
+								<th class="text-left">Title</th>
+								<th class="text-left">Count</th>
+							</tr>
+						</thead>
+						<tbody style="cursor:pointer">
+							<tr v-for="(item, key) in playlists" :key="'playlist' + item.id" @click="addTo(item)">
+								<td>{{ item.title }}</td>
+								<td>{{ item.len_tracks }}</td>
+							</tr>
+						</tbody>
+					</v-simple-table>
+				</v-card-text>
+			</v-card>
+		</v-dialog>
+	</div>
+	`,
+	props: [],
+	data: function() {
+		return {
+			show: false,
+			search: '',
+			playlists: [],
+		}
+	},
+	created: function() {
+		this.debouncedSearch = _.debounce(() => { this.doSearch() }, 300)
+	},
+	methods: {
+		add: function(track) {
+			this.show = true;
+			this.cur_track = track;
+			this.doSearch();
+		},
+		doSearch: function() {
+			axios.get('/api/playlist/search', {params: {query: this.search}}).then(response => {
+				this.playlists = response.data.data;
+			})
+		},
+		addTo: function(playlist) {
+			axios.post('/api/playlist/' + playlist.id + '/addtrack', {song_id: this.cur_track.id}).then(response => {
+				this.show = false
+			})
+		}
+	}
+})
+
 const Album = {
 	template: `
 	<div>
@@ -213,7 +270,7 @@ const Album = {
 					<td>
 						<v-btn text icon small v-on:click="setPlayList(songs, key)"><v-icon>mdi-play-circle</v-icon></v-btn>
 						<v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn>
-						<v-btn text icon small><v-icon>mdi-folder-plus</v-icon></v-btn>
+						<v-btn text icon small v-on:click="$refs.add_playlist.add(item)"><v-icon>mdi-folder-plus</v-icon></v-btn>
 					</td>
 					<td>{{ item.title }}</td>
 					<td>{{ item.duration }}</td>
@@ -254,6 +311,7 @@ const Album = {
 				<file-upload label="File" :upload_handler="upload('other')"></file-upload>
 			</v-tab-item>
 		</v-tabs>
+		<add-playlist ref="add_playlist"></add-playlist>
 	</div>
 	`,
 	data: function() {
