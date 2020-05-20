@@ -31,7 +31,9 @@ def album_init(fo):
 	for track in album['tracks']:
 		if tstr_to_time(track['start_time'], 0) != 0 or track['end_time'] != '':
 			full_lossy_single = False
-	if full_single and (album['quality'] in ['DSD', 'lossy']):
+	no_flac = album['quality'] in ['DSD', 'lossy']
+	no_flac = no_flac or '32 bit' in album['quality_details']
+	if full_single and no_flac:
 		for track in album['tracks']:
 			track['filename'] = fo + track['filename']
 	else:

@@ -507,7 +507,7 @@ const Albums = {
 			</thead>
 			<tbody>
 				<tr v-for="(item, key) in albums" :key="'album' + item.id">
-					<td><router-link :to="'/album/' + item.id">{{ item.title }}</router-link></td>
+					<td><router-link :to="'/album/' + item.id">{{ item.title || 'Empty name' }}</router-link></td>
 					<td>{{ item.artist }}</td>
 					<td>{{ getFormatString(item) }}</td>
 				</tr>
