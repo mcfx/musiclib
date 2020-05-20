@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>test</title>
+		<title>Music library</title>
 		<link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
 		<link href="https://cdn.jsdelivr.net/npm/vuetify@2.1.1/dist/vuetify.min.css" rel="stylesheet">
 		<link href="https://cdn.jsdelivr.net/npm/viewerjs@1.5.0/dist/viewer.min.css" rel="stylesheet">
@@ -21,6 +21,15 @@
 	<body>
 		<div id="app" class="v-application">
 			<v-container style="max-width:1185px">
+				<v-toolbar flat="true">
+					<h2>Music library</h2>
+					<v-spacer></v-spacer>
+					<v-toolbar-items>
+						<v-btn text class="no-upper-case" tag="router-link" to="/albums">Albums</v-btn>
+						<v-btn text class="no-upper-case" tag="router-link" to="/playlists">Playlists</v-btn>
+						<v-btn text class="no-upper-case" tag="router-link" to="/manage">Manage</v-btn>
+					</v-toolbar-items>
+				</v-toolbar>
 				<router-view></router-view>
 			</v-container>
 		</div>

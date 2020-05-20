@@ -352,6 +352,7 @@ const Album = {
 			axios.get('/api/album/' + this.id + '/info').then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
+				document.title = this.title + ' - ' + this.artist + ' - Albums';
 			})
 			axios.get('/api/album/' + this.id + '/scans').then(response => {
 				this.scans = response.data.data;
@@ -446,6 +447,7 @@ const AlbumEdit = {
 			axios.get('/api/album/' + this.id + '/info').then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
+				document.title = this.title + ' - ' + this.artist + ' - Edit - Albums';
 			})
 		},
 		submit: function() {
@@ -494,7 +496,7 @@ const Playlist = {
 					<td>{{ item.title }}</td>
 					<td>{{ item.duration }}</td>
 					<td>{{ item.artist }}</td>
-					<td><router-link :to="'/album/' + item.album_id">{{ item.album_title }}</a></td>
+					<td><router-link :to="'/album/' + item.album_id">{{ item.album_title }}</router-link></td>
 				</tr>
 			</tbody>
 		</v-simple-table>
@@ -517,6 +519,7 @@ const Playlist = {
 			axios.get('/api/playlist/' + this.id + '/info').then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
+				document.title = this.title + ' - Playlists';
 			})
 		},
 		download_song: function(item) {
@@ -582,6 +585,7 @@ const PlaylistEdit = {
 			axios.get('/api/playlist/' + this.id + '/info').then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
+				document.title = this.title + ' - Edit - Playlists';
 			})
 		},
 		download_song: function(item) {
@@ -605,10 +609,10 @@ const PlaylistEdit = {
 const router = new VueRouter({
 	routes: [
 		{ path: '/', component: Index },
-		{ path: '/album/:id', component: Album, name: 'album' },
-		{ path: '/album/:id/edit', component: AlbumEdit, name: 'album_edit' },
-		{ path: '/playlist/:id', component: Playlist, name: 'playlist' },
-		{ path: '/playlist/:id/edit', component: PlaylistEdit, name: 'playlist_edit' },
+		{ path: '/album/:id', component: Album, name: 'album', meta: {title: route => { return route.params.id + ' - Albums' }}},
+		{ path: '/album/:id/edit', component: AlbumEdit, name: 'album_edit', meta: {title: route => { return route.params.id + ' - Edit - Albums' }}},
+		{ path: '/playlist/:id', component: Playlist, name: 'playlist', meta: {title: route => { return route.params.id + ' - Playlists' }}},
+		{ path: '/playlist/:id/edit', component: PlaylistEdit, name: 'playlist_edit', meta: {title: route => { return route.params.id + ' - Edit - Playlists' }}},
 	]
 })
 
@@ -617,3 +621,13 @@ new Vue({
 	el: '#app',
 	vuetify: new Vuetify(opts)
 })
+
+function updateTemporaryTitle(route) {
+	Vue.nextTick(() => {
+		var tmp = typeof(route.meta.title) == 'function' ? route.meta.title(route) : '';
+		document.title = tmp || route.meta.title || 'Music library';
+	});
+}
+
+router.afterEach((to, from) => { updateTemporaryTitle(to) });
+updateTemporaryTitle(router.currentRoute);
