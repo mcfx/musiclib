@@ -189,10 +189,10 @@ Vue.component('file-upload', {
 Vue.component('add-playlist', {
 	template: `
 	<div data-app>
-		<v-dialog v-model="show" max-width="500" max-height="600">
+		<v-dialog v-model="show" max-width="500" scrollable>
 			<v-card style="min-height:600px">
 				<v-card-title>Choose target playlist</v-card-title>
-				<v-card-text>
+				<v-card-text style="height:600px">
 					<v-text-field v-model="search" label="Search for playlists" @input="debouncedSearch()"></v-text-field>
 					<v-simple-table>
 						<thead>
@@ -718,6 +718,11 @@ const Manage = {
 	<div>
 		<v-card-title>Upload album</v-card-title>
 		<file-upload label="File" :upload_handler="upload_album"></file-upload>
+		<v-card-title>Create playlist</v-card-title>
+		<v-card-text>
+			<v-text-field v-model="new_playlist_title" label="title"></v-text-field>
+			<v-btn class="no-upper-case" outlined @click="create_playlist">Create</v-btn>
+		</v-card-text>
 		<v-card-title>Current task</v-card-title>
 		<div>
 			<v-simple-table v-if="queue.current_task">
@@ -786,7 +791,8 @@ const Manage = {
 	`,
 	data: function() {
 		return {
-			queue: {current_task: null, done: [], queue: []}
+			queue: {current_task: null, done: [], queue: []},
+			new_playlist_title: '',
 		}
 	},
 	created: function() {
@@ -806,6 +812,11 @@ const Manage = {
 			axios.post('/api/album/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}}).then(response => {
 				callback(response.data);
 				_this.init();
+			})
+		},
+		create_playlist: function() {
+			axios.post('/api/playlist/create', {'title': this.new_playlist_title}).then(response => {
+				this.$router.push({ name: 'playlist', params: { id: response.data.id } })
 			})
 		}
 	}

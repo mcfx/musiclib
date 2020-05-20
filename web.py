@@ -384,6 +384,17 @@ def update_playlist_info(id):
 	db.session.commit()
 	return jsonify({'status': True})
 
+@app.route('/api/playlist/create', methods = ['POST'])
+def create_playlist():
+	s = request.json
+	if 'title' not in s:
+		return jsonify({'status': False})
+	title = s['title']
+	pl = Playlist(title = title, description = '', tracklist = '', last_update = 0)
+	db.session.add(pl)
+	db.session.commit()
+	return jsonify({'status': True, 'id': pl.id})
+
 @app.route('/api/queue')
 def get_queue_stat():
 	return jsonify(get_file_queue())
