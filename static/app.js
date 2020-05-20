@@ -201,8 +201,7 @@ const Album = {
 			<thead>
 				<tr>
 					<th class="text-left">#</th>
-					<th class="text-left"></th>
-					<th class="text-left"></th>
+					<th class="text-left" style="min-width:130px"></th>
 					<th class="text-left">Title</th>
 					<th class="text-left">Duration</th>
 					<th class="text-left">Artist</th>
@@ -211,8 +210,11 @@ const Album = {
 			<tbody>
 				<tr v-for="(item, key) in songs" :key="'song' + item.id">
 					<td>{{ item.track }}</td>
-					<td><v-btn text icon small v-on:click="setPlayList(songs, key)"><v-icon>mdi-play-circle</v-icon></v-btn></td>
-					<td><v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn></td>
+					<td>
+						<v-btn text icon small v-on:click="setPlayList(songs, key)"><v-icon>mdi-play-circle</v-icon></v-btn>
+						<v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn>
+						<v-btn text icon small><v-icon>mdi-folder-plus</v-icon></v-btn>
+					</td>
 					<td>{{ item.title }}</td>
 					<td>{{ item.duration }}</td>
 					<td>{{ item.artist }}</td>
@@ -410,15 +412,14 @@ const Playlist = {
 	template: `
 	<div>
 		<v-row>
-			<v-card-title> {{ title }} </v-card-title>
+			<v-card-title> {{ title }} &nbsp; <v-btn text icon small><v-icon @click="edit">mdi-pencil</v-icon></v-btn></v-card-title>
 			<v-card-text> {{ description }} </v-card-text>
 		</v-row>
 		<v-simple-table>
 			<thead>
 				<tr>
 					<th class="text-left">#</th>
-					<th class="text-left"></th>
-					<th class="text-left"></th>
+					<th class="text-left" style="min-width:100px"></th>
 					<th class="text-left">Title</th>
 					<th class="text-left">Duration</th>
 					<th class="text-left">Artist</th>
@@ -428,8 +429,10 @@ const Playlist = {
 			<tbody>
 				<tr v-for="(item, key) in tracks" :key="'track' + item.id">
 					<td>{{ key + 1 }}</td>
-					<td><v-btn text icon small v-on:click="setPlayList(tracks, key)"><v-icon>mdi-play-circle</v-icon></v-btn></td>
-					<td><v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn></td>
+					<td>
+						<v-btn text icon small v-on:click="setPlayList(tracks, key)"><v-icon>mdi-play-circle</v-icon></v-btn>
+						<v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn>
+					</td>
 					<td>{{ item.title }}</td>
 					<td>{{ item.duration }}</td>
 					<td>{{ item.artist }}</td>
@@ -462,6 +465,81 @@ const Playlist = {
 			axios.get('/api/song/' + item.id + '/link').then(response => {
 				emit_download(response.data.data.file);
 			})
+		},
+		edit: function() {
+			this.$router.push({ name: 'playlist_edit', params: { id: this.id } });
+		}
+	}
+}
+
+const PlaylistEdit = {
+	template: `
+	<div>
+		<v-row>
+			<v-card-title> Edit: {{ title }} </v-card-title>
+			<v-card-text>
+				<v-text-field v-model="title" label="Title"></v-text-field>
+				<v-text-field v-model="description" label="Description"></v-text-field>
+			</v-card-text>
+		</v-row>
+		<v-simple-table>
+			<thead>
+				<tr>
+					<th class="text-left">#</th>
+					<th class="text-left">Title</th>
+					<th class="text-left">Duration</th>
+					<th class="text-left">Artist</th>
+					<th class="text-left">Album</th>
+					<th class="text-left"></th>
+				</tr>
+			</thead>
+			<draggable v-model="tracks" group="playlist-tracks" tag="tbody">
+				<tr v-for="(item, key) in tracks" :key="'track' + item.id">
+					<td>{{ key + 1 }}</td>
+					<td>{{ item.title }}</td>
+					<td>{{ item.duration }}</td>
+					<td>{{ item.artist }}</td>
+					<td>{{ item.album_title }}</td>
+					<td><v-btn text icon small v-on:click="tracks.splice(key, 1)"><v-icon>mdi-delete</v-icon></v-btn></td>
+				</tr>
+			</draggable>
+		</v-simple-table>
+		<v-card-text><v-btn class="no-upper-case" outlined @click="submit">Confirm</v-btn></v-card-text>
+	</div>
+	`,
+	data: function() {
+		return {
+			id: -1,
+			title: '',
+			description: '',
+			tracks: []
+		}
+	},
+	created: function() {
+		this.id = this.$route.params.id;
+		this.init();
+	},
+	methods: {
+		init: function() {
+			axios.get('/api/playlist/' + this.id + '/info').then(response => {
+				for (key in response.data.data)
+					this[key] = response.data.data[key];
+			})
+		},
+		download_song: function(item) {
+			axios.get('/api/song/' + item.id + '/link').then(response => {
+				emit_download(response.data.data.file);
+			})
+		},
+		submit: function() {
+			var tmp = {
+				title: this.title,
+				description: this.description,
+				tracks: this.tracks.map(x => x.id).join(),
+			};
+			axios.post('/api/playlist/' + this.id + '/update', tmp).then(response => {
+				this.$router.push({ name: 'playlist', params: { id: this.id } });
+			})
 		}
 	}
 }
@@ -472,6 +550,7 @@ const router = new VueRouter({
 		{ path: '/album/:id', component: Album, name: 'album' },
 		{ path: '/album/:id/edit', component: AlbumEdit, name: 'album_edit' },
 		{ path: '/playlist/:id', component: Playlist, name: 'playlist' },
+		{ path: '/playlist/:id/edit', component: PlaylistEdit, name: 'playlist_edit' },
 	]
 })
 

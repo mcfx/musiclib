@@ -301,6 +301,28 @@ def get_playlist_info(id):
 		res['tracks'].append(song)
 	return jsonify({'status': True, 'data': res})
 
+@app.route('/api/playlist/<id>/update', methods = ['POST'])
+def update_playlist_info(id):
+	id = int(id)
+	playlist = Playlist.query.filter(Playlist.id == id).first()
+	if playlist is None:
+		return jsonify({'status': False})
+	s = request.json
+	try:
+		playlist.title = s['title']
+		playlist.description = s['description']
+		tr = list(map(int, s['tracks'].split(',')))
+		for i in tr:
+			song = Song.query.filter(Song.id == i).first()
+			if song is None:
+				return jsonify({'status': False})
+		playlist.tracklist = tr
+	except Exception as e:
+		traceback.print_exc()
+		return jsonify({'status': False})
+	db.session.commit()
+	return jsonify({'status': True})
+
 @app.route('/api/queue')
 def get_queue_stat():
 	return jsonify(get_file_queue())
