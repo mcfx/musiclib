@@ -342,7 +342,7 @@ def update_playlist_info(id):
 	try:
 		playlist.title = s['title']
 		playlist.description = s['description']
-		tr = list(map(int, s['tracks'].split(',')))
+		tr = [] if s['tracks']=='' else list(map(int, s['tracks'].split(',')))
 		for i in tr:
 			song = Song.query.filter(Song.id == i).first()
 			if song is None:
