@@ -8,6 +8,7 @@ from threading import Thread, RLock
 from file_process.album_init import get_album_info, get_album_images, get_album_logs, convert_album_to_flac, tstr_to_time
 from file_process.ffmpeg import probe
 from file_process.scans import get_converted_images
+from file_process.flac import gen_flac
 from file_utils import get_ext, clear_cache
 import files
 import db
@@ -95,15 +96,40 @@ def add_scans(fo, packname, album_id):
 	db.execute("insert into scans(name, album_id, files) values (%(name)s, %(album_id)s, %(files)s)", {'name': packname, 'album_id': album_id, 'files': imgfs})
 	return True
 
+def gen_final_flac(album):
+	dstfo = config.TEMP_PATH
+	if dstfo[-1] != '/':
+		dstfo += '/'
+	dstfo += '/gen_flac/'
+	clear_cache(dstfo)
+	_files = []
+	for i in range(len(album.tracks)):
+		track = album.tracks[i]
+		if track.file_flac:
+			files.del_file(track.file_flac)
+		fn = dstfo + str(i) + '.flac'
+		open(fn, 'wb').write(files.get_content(track.file))
+		_files.append(fn)
+	if len(album.cover_files):
+		cover = files.get_content(album.cover_files[0])
+	else:
+		cover = None
+	gen_flac(album, _files, cover)
+	for i in range(len(album.tracks)):
+		fn = dstfo + str(i) + '.flac'
+		tf = files.add_file(fn)
+		db.execute("update songs set file_flac = %(fn)s where id = %(id)s", {'id': album.tracks[i].id, 'fn': tf})
 
 ft_lock = RLock()
 ft_queue = []
+ft_queue_ext = []
 ft_done = []
 ft_current_task = None
 
-def add_file_task(task):
+def add_file_task(task, task_ext = None):
 	ft_lock.acquire()
 	ft_queue.append(task)
+	ft_queue_ext.append(task_ext)
 	ft_lock.release()
 
 def get_file_queue():
@@ -172,7 +198,9 @@ def file_process_thread():
 		ft_lock.acquire()
 		if len(ft_queue):
 			task = ft_queue[0]
-			ft_queue = ft_queue[1:]
+			task_ext = ft_queue_ext[0]
+			ft_queue.pop(0)
+			ft_queue_ext.pop(0)
 		else:
 			task = None
 		ft_current_task = deepcopy(task)
@@ -227,6 +255,11 @@ def file_process_thread():
 					task_result = {'status': False, 'error': 'Failed to get album info'}
 			ft_lock.acquire()
 			ft_done.append({'task': task, 'result': task_result, 'done_time': int(time.time())})
+			ft_lock.release()
+		elif task['type'] == 'album_gen_flac':
+			gen_final_flac(task_ext)
+			ft_lock.acquire()
+			ft_done.append({'task': task, 'result': {'status': True}, 'done_time': int(time.time())})
 			ft_lock.release()
 
 def start_process_thread(app):

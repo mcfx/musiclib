@@ -219,6 +219,19 @@ def get_album_files(id):
 		res.append({'id': fl.id, 'name': fl.name, 'file': fl.file})
 	return jsonify({'status': True, 'data': res})
 
+@app.route('/api/album/<id>/gen_flac', methods = ['POST'])
+def album_gen_flac(id):
+	id = int(id)
+	album = Album.query.filter(Album.id == id).first()
+	if album is None:
+		return jsonify({'status': False})
+	if album.format != 'flac':
+		return jsonify({'status': False})
+	songs = Song.query.filter(Song.album_id == id).order_by(Song.track).all()
+	album.tracks = songs
+	add_file_task({'type': 'album_gen_flac', 'album_id': id}, album)
+	return jsonify({'status': True})
+
 @app.route('/api/album/<id>/upload/<tp>', methods = ['POST'])
 def album_upload_files(id, tp):
 	id = int(id)

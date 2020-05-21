@@ -1,4 +1,5 @@
 import os, hashlib, binascii, shutil, time
+from threading import RLock
 
 from flask import Flask, request, current_app, send_from_directory
 from werkzeug.utils import secure_filename
@@ -40,6 +41,8 @@ def add_bytes(s, ext = ''):
 		db.session.commit()
 	return hexhs + '.' + ext
 
+db_lock = RLock()
+
 def add_file(tmp_path):
 	hs = hashlib.sha512()
 	with open(tmp_path, 'rb') as f:
@@ -49,10 +52,12 @@ def add_file(tmp_path):
 			hs.update(t)
 	sha512 = hs.digest()
 	hexhs = binascii.hexlify(sha512).decode()
+	db_lock.acquire()
 	file = File.query.filter(File.sha512 == sha512).first()
 	if file is None:
 		db.session.add(File(sha512 = sha512, count = 1))
 		db.session.commit()
+		db_lock.release()
 		fo = config.STORAGE_PATH + '/' + hexhs[:2]
 		fn = fo + '/' + hexhs[2:]
 		if not os.path.exists(fo):
@@ -61,7 +66,21 @@ def add_file(tmp_path):
 	else:
 		file.count += 1
 		db.session.commit()
+		db_lock.release()
 	return hexhs + '.' + get_ext(tmp_path, '')
+
+def del_file(hash):
+	hash = purify_hash(hash)
+	db_lock.acquire()
+	file = File.query.filter(File.sha512 == hash).one()
+	file.count -= 1
+	if file.count == 0:
+		fo = config.STORAGE_PATH + '/' + hexhs[:2]
+		fn = fo + '/' + hexhs[2:]
+		os.remove(fn)
+		db.session.delete(file)
+	db.session.commit()
+	db_lock.release()
 
 def purify_hash(s):
 	if '.' not in s:

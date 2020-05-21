@@ -256,7 +256,11 @@ const Album = {
 					Source: {{ source && file_source ? source + ', ' + file_source : source || file_source || 'Unknown' }} <br>
 					Trusted: {{ trusted ? 'yes' : 'no' }} <br>
 					Comments: {{ comments }} <br>
-					<v-btn text small @click="edit()">Edit</v-btn>
+					<v-btn text small @click="edit()" class="no-upper-case">Edit</v-btn>
+					<span v-if="format == 'flac'">
+						<v-btn text small @click="gen_flac()" class="no-upper-case">Gen Flac</v-btn>
+						<span v-if="gen_flac_result.length">{{ gen_flac_result }}</span>
+					</span>
 				</v-card-text>
 			</v-col>
 		</v-row>
@@ -355,7 +359,8 @@ const Album = {
 			cover_files: [],
 			comments: '',
 			songs: [],
-			scans: []
+			scans: [],
+			gen_flac_result: '',
 		}
 	},
 	computed: {
@@ -385,7 +390,7 @@ const Album = {
 		},
 		download_song: function(item) {
 			axios.get('/api/song/' + item.id + '/link').then(response => {
-				emit_download(response.data.data.file);
+				emit_download(response.data.data.file_flac || response.data.data.file);
 			})
 		},
 		edit: function() {
@@ -400,6 +405,15 @@ const Album = {
 					callback(response.data);
 				})
 			}
+		},
+		gen_flac: function() {
+			axios.post('/api/album/' + this.id + '/gen_flac').then(response => {
+				var _this = this;
+				this.gen_flac_result = response.data.status ? 'OK' : 'Error';
+				setTimeout(function() {
+					_this.gen_flac_result = '';
+				}, 3000);
+			})
 		}
 	}
 }
@@ -777,7 +791,7 @@ const Manage = {
 			</thead>
 			<tbody>
 				<tr v-for="(item, key) in queue.done" :key="'taskd' + key">
-					<td>{{ item.album_id }}</td>
+					<td>{{ item.task.album_id }}</td>
 					<td>{{ item.task.filename }}</td>
 					<td>{{ item.task.path }}</td>
 					<td>{{ item.task.type }}</td>
