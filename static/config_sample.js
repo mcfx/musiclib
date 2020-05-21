@@ -1,0 +1,1 @@
+const vuerouter_history_mode = true

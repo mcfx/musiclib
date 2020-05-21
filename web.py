@@ -135,8 +135,9 @@ song_schema = SongSchema()
 
 @app.route('/')
 def send_index():
-	#return app.send_static_file('index.html')
-	return open('static/index.html').read().replace('app.js', 'app.js?' + str(random.random())).replace('app.css', 'app.css?' + str(random.random()))
+	if config.DEBUG:
+		return open('static/index.html').read().replace('app.js', 'app.js?' + str(random.random())).replace('app.css', 'app.css?' + str(random.random())).replace('config.js', 'config.js?' + str(random.random()))
+	return app.send_static_file('index.html') # should be handled by nginx
 
 @app.route('/api/album/search')
 def search_album():

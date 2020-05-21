@@ -837,6 +837,7 @@ const Manage = {
 }
 
 const router = new VueRouter({
+	mode: vuerouter_history_mode ? 'history' : 'hash',
 	routes: [
 		{ path: '/', component: Index },
 		{ path: '/album/:id', component: Album, name: 'album', meta: {title: route => { return route.params.id + ' - Albums' }}},

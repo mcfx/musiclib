@@ -11,3 +11,7 @@ STORAGE_PATH = ''
 STORAGE_SALT = b''
 
 BACKUP_PATH = ''
+
+TRUSTED_EXTENSIONS = ['zip', 'rar', '7z', 'log', 'txt', 'jpg']
+
+DEBUG = True
