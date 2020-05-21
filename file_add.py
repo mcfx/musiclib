@@ -135,7 +135,7 @@ def add_file_task(task, task_ext = None):
 def get_file_queue():
 	ft_lock.acquire()
 	res = deepcopy(ft_queue)
-	resd = deepcopy(ft_done)
+	resd = ft_done[::-1]
 	ft_lock.release()
 	return {'queue': res, 'done': resd, 'current_task': ft_current_task}
 
