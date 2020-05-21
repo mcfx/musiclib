@@ -143,7 +143,7 @@ def search_album():
 	query = request.values.get('query')
 	reqs = [Album.title, Album.artist, Album.comments]
 	req = reduce(or_, map(lambda y: reduce(and_, map(lambda x: y.like('%' + x + '%'), query.split()), True), reqs))
-	albums = Album.query.filter(req).order_by(Album.id).all()
+	albums = Album.query.filter(req).order_by(Album.id.desc()).all()
 	res = []
 	for album in albums:
 		tmp = album_schema.dump(album)
