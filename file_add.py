@@ -270,3 +270,5 @@ def start_process_thread(app):
 	ft = Thread(target = run)
 	ft.setDaemon(True)
 	ft.start()
+
+print(get_album_info(r'D:\music\0_eac\Pyxis - 恋せよみんな、ハイ! [初回盤]'))
