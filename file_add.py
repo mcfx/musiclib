@@ -150,7 +150,7 @@ def decompress(archive_path, decompress_path, password = None):
 		res.append((p.returncode, stdout, stderr))
 	thread = Thread(target = work)
 	thread.start()
-	thread.join(60) # enough to decompress most files
+	thread.join(600) # enough to decompress most files (60s too short for some files)
 	if thread.is_alive():
 		p.terminate()
 		return False, b'Timeout while running 7z'
