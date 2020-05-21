@@ -807,16 +807,21 @@ const Manage = {
 		return {
 			queue: {current_task: null, done: [], queue: []},
 			new_playlist_title: '',
+			working: false,
 		}
 	},
 	created: function() {
+		this.working = true;
 		this.init();
+	},
+	destroyed: function() {
+		this.working = false
 	},
 	methods: {
 		init: function() {
 			axios.get('/api/queue').then(response => {
 				this.queue = response.data;
-				setTimeout(this.init, 2000);
+				if (this.working) setTimeout(this.init, 2000);
 			})
 		},
 		upload_album: function(file, callback) {
