@@ -72,12 +72,13 @@ def add_file(tmp_path):
 
 def del_file(hash):
 	hash = purify_hash(hash)
+	sha512 = binascii.unhexlify(hash)
 	db_lock.acquire()
-	file = File.query.filter(File.sha512 == hash).one()
+	file = File.query.filter(File.sha512 == sha512).one()
 	file.count -= 1
 	if file.count == 0:
-		fo = config.STORAGE_PATH + '/' + hexhs[:2]
-		fn = fo + '/' + hexhs[2:]
+		fo = config.STORAGE_PATH + '/' + hash[:2]
+		fn = fo + '/' + hash[2:]
 		os.remove(fn)
 		db.session.delete(file)
 	db.session.commit()

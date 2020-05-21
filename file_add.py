@@ -234,6 +234,7 @@ def file_process_thread():
 				cover_new = files.add_file(path)
 				cover_files = (cover_files + ',' + cover_new).strip(',')
 				db.execute("update albums set cover_files = %(cf)s where id = %(id)s", {'id': task['album_id'], 'cf': cover_files})
+				task_result = {'status': True}
 			else:
 				task_result = {'status': True}
 			backup_album_file(path, task['album_id'], task['filename'])
