@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 
 from file_utils import get_ext
+from flask_wrappers import skip_error
 import config
 
 app = None
@@ -108,6 +109,7 @@ def get_link(hash, dlname = 'file', expire = 3600):
 	return '/file/%s/%s?expire=%d&sign=%s' % (hash, dlname, expire, sig)
 
 @app.route('/file/<hash>/<dlname>')
+@skip_error
 def get_file(hash, dlname):
 	expire = request.values.get('expire')
 	sig = request.values.get('sign')
@@ -128,6 +130,7 @@ def get_file(hash, dlname):
 	return send_from_directory(fo, fn, as_attachment = True, attachment_filename = dlname)
 
 @app.route('/filebk/<date>/<name>')
+@skip_error
 def get_file_backup(date, name):
 	date = str(int(date))
 	name = secure_filename(name)

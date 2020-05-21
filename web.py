@@ -22,6 +22,7 @@ with app.app_context():
 	from file_utils import get_ext, purify_filename
 	from file_process import auto_decode
 	from file_add import add_file_task, get_file_queue, start_process_thread
+	from flask_wrappers import skip_error_and_auth
 	import files
 	
 	start_process_thread(app)
@@ -140,6 +141,7 @@ def send_index():
 	return app.send_static_file('index.html') # should be handled by nginx
 
 @app.route('/api/album/search')
+@skip_error_and_auth
 def search_album():
 	query = request.values.get('query')
 	reqs = [Album.title, Album.artist, Album.comments]
@@ -153,6 +155,7 @@ def search_album():
 	return jsonify({'status': True, 'data': res})
 
 @app.route('/api/album/<id>/info')
+@skip_error_and_auth
 def get_album_info(id):
 	id = int(id)
 	album = Album.query.filter(Album.id == id).first()
@@ -167,6 +170,7 @@ def get_album_info(id):
 	return jsonify({'status': True, 'data': res})
 
 @app.route('/api/album/<id>/update', methods=['POST'])
+@skip_error_and_auth
 def update_album_info(id):
 	id = int(id)
 	album = Album.query.filter(Album.id == id).first()
@@ -193,6 +197,7 @@ def update_album_info(id):
 	return jsonify({'status': True})
 
 @app.route('/api/album/<id>/scans')
+@skip_error_and_auth
 def get_album_scans(id):
 	id = int(id)
 	album = Album.query.filter(Album.id == id).first()
@@ -209,6 +214,7 @@ def get_album_scans(id):
 	return jsonify({'status': True, 'data': res})
 
 @app.route('/api/album/<id>/files')
+@skip_error_and_auth
 def get_album_files(id):
 	id = int(id)
 	album = Album.query.filter(Album.id == id).first()
@@ -221,6 +227,7 @@ def get_album_files(id):
 	return jsonify({'status': True, 'data': res})
 
 @app.route('/api/album/<id>/gen_flac', methods = ['POST'])
+@skip_error_and_auth
 def album_gen_flac(id):
 	id = int(id)
 	album = Album.query.filter(Album.id == id).first()
@@ -234,6 +241,7 @@ def album_gen_flac(id):
 	return jsonify({'status': True})
 
 @app.route('/api/album/<id>/upload/<tp>', methods = ['POST'])
+@skip_error_and_auth
 def album_upload_files(id, tp):
 	id = int(id)
 	album = Album.query.filter(Album.id == id).first()
@@ -256,6 +264,7 @@ def album_upload_files(id, tp):
 	return jsonify({'status': True, 'msg': 'Added to queue'})
 
 @app.route('/api/album/upload', methods = ['POST'])
+@skip_error_and_auth
 def album_upload():
 	if 'file' not in request.files:
 		return jsonify({'status': False, 'msg': 'File not found'})
@@ -272,6 +281,7 @@ def album_upload():
 	return jsonify({'status': True, 'msg': 'Added to queue'})
 
 @app.route('/api/song/<id>/link')
+@skip_error_and_auth
 def get_song_link(id):
 	id = int(id)
 	song = Song.query.filter(Song.id == id).first()
@@ -285,6 +295,7 @@ def get_song_link(id):
 	return jsonify({'status': True, 'data': data})
 
 @app.route('/api/songs/<ids>/play')
+@skip_error_and_auth
 def get_songs_play(ids):
 	ids = list(map(int, ids.split(',')))
 	res_files = []
@@ -309,6 +320,7 @@ def get_songs_play(ids):
 	return jsonify({'status': True, 'data': {'files': res_files, 'covers': covers}})
 
 @app.route('/api/scan/<id>/update_name', methods = ['POST'])
+@skip_error_and_auth
 def update_scan_name(id):
 	scan = Scan.query.filter(Scan.id == id).first()
 	if scan is None:
@@ -318,6 +330,7 @@ def update_scan_name(id):
 	return jsonify({'status': True})
 
 @app.route('/api/log/<id>')
+@skip_error_and_auth
 def get_log(id):
 	if re.match(r'^[a-zA-Z0-9\._]+$', id) is None:
 		return jsonify({'status': False})
@@ -325,12 +338,14 @@ def get_log(id):
 	return jsonify({'status': True, 'data': log})
 
 @app.route('/api/log/<id>/download')
+@skip_error_and_auth
 def get_log_download(id):
 	if re.match(r'^[a-zA-Z0-9\._]+$', id) is None:
 		return jsonify({'status': False})
 	return jsonify({'status': True, 'data': files.get_link(id, 'album.log')})
 
 @app.route('/api/playlist/search')
+@skip_error_and_auth
 def search_playlist():
 	query = request.values.get('query')
 	req_title = reduce(and_, map(lambda x: Playlist.title.like('%' + x + '%'), query.split()), True)
@@ -340,6 +355,7 @@ def search_playlist():
 	return jsonify({'status': True, 'data': res})
 
 @app.route('/api/playlist/<id>/info')
+@skip_error_and_auth
 def get_playlist_info(id):
 	id = int(id)
 	playlist = Playlist.query.filter(Playlist.id == id).first()
@@ -357,6 +373,7 @@ def get_playlist_info(id):
 	return jsonify({'status': True, 'data': res})
 
 @app.route('/api/playlist/<id>/addtrack', methods = ['POST'])
+@skip_error_and_auth
 def playlist_addtrack(id):
 	id = int(id)
 	playlist = Playlist.query.filter(Playlist.id == id).first()
@@ -376,6 +393,7 @@ def playlist_addtrack(id):
 	return jsonify({'status': True})
 
 @app.route('/api/playlist/<id>/update', methods = ['POST'])
+@skip_error_and_auth
 def update_playlist_info(id):
 	id = int(id)
 	playlist = Playlist.query.filter(Playlist.id == id).first()
@@ -399,6 +417,7 @@ def update_playlist_info(id):
 	return jsonify({'status': True})
 
 @app.route('/api/playlist/create', methods = ['POST'])
+@skip_error_and_auth
 def create_playlist():
 	s = request.json
 	if 'title' not in s:
@@ -410,7 +429,9 @@ def create_playlist():
 	return jsonify({'status': True, 'id': pl.id})
 
 @app.route('/api/queue')
+@skip_error_and_auth
 def get_queue_stat():
 	return jsonify(get_file_queue())
 
-app.run(host = '127.0.0.1', port = 1928, debug = True)
+if __name__ == '__main__':
+	app.run(host = '127.0.0.1', port = 1928, debug = config.DEBUG)
