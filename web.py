@@ -385,9 +385,7 @@ def playlist_addtrack(id):
 	sid = s['song_id']
 	if Song.query.filter(Song.id == sid).first() is None:
 		return jsonify({'status': False})
-	#playlist.tracklist.append(sid)
 	playlist.tracklist = playlist.tracklist + [sid]
-	print(playlist.tracklist)
 	playlist.last_update = int(time.time())
 	db.session.commit()
 	return jsonify({'status': True})
