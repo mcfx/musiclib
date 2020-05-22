@@ -5,6 +5,8 @@ from . import cuereader
 from . import shntool
 from . import auto_decode
 
+AUDIO_EXTS = ['wav', 'flac', 'alac', 'm4a', 'mp3', 'tak', 'tta', 'ape']
+
 def safe_get(_dict, _key, _default = ''):
 	if type(_dict) is dict and _key in _dict:
 		return _dict[_key]
@@ -142,7 +144,7 @@ def get_album_info_fulldisc(fo, fn):
 			else:
 				ftx = None
 				ftt = remove_ext(si['file'][0])
-				exts = ['wav', 'flac', 'alac', 'm4a', 'mp3', 'tak', 'tta', 'ape']
+				exts = AUDIO_EXTS
 				for ftx_ in os.listdir(fo):
 					for ext in exts:
 						if ftx_.lower() == (ftt + '.' + ext).lower():
@@ -243,10 +245,18 @@ def convert_album_to_flac(album, fo, dstfo):
 		t = (tid, tstr_to_time(track['start_time']), tstr_to_time(track['end_time'], INF))
 		file_occur[track['filename']].append(t)
 	#print(file_occur)
-	for f in file_occur:
-		fp = file_occur[f]
+	for fr in file_occur:
+		fp = file_occur[fr]
 		fp.sort(key = lambda x: x[1])
-		if file_format[f] == 'flac' and len(fp) == 1 and fp[0][1] == 0 and fp[0][2] == INF:
+		if os.path.exists(fo + fr):
+			f = fr
+		else:
+			f = None
+			for fu in os.listdir(fo):
+				if remove_ext(fu) == remove_ext(fr): # fix for weird cue that filename is xxx.wav but not the real one
+					f = fu
+					break
+		if file_format[fr] == 'flac' and len(fp) == 1 and fp[0][1] == 0 and fp[0][2] == INF:
 			shutil.copyfile(fo + f, dstfo + '%d.flac' % fp[0][0])
 			continue
 		if len(fp) == 1 and fp[0][1] == 0 and fp[0][2] == INF:
@@ -254,7 +264,7 @@ def convert_album_to_flac(album, fo, dstfo):
 			p = Popen(['metaflac', '--dont-use-padding', '--remove-all', dstfo + '%d.flac' % fp[0][0]], stdout = PIPE, stderr = PIPE)
 			so, er = p.communicate()
 			continue
-		if file_format[f] == 'flac' or file_format[f] == 'wav':
+		if file_format[fr] == 'flac' or file_format[fr] == 'wav':
 			rfn = fo + f
 		else:
 			rfn = dstfo + remove_ext(f) + '.wav'
