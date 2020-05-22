@@ -40,6 +40,7 @@ def probe(fn):
 	while i < len(s2):
 		if s2[i][1] != 'Metadata:':
 			t = s2[i][1].split(':', 2)
+			if len(t) < 3: t.append('') # fix for strange files
 			if t[0] == 'Stream #0':
 				res_str.append({'id': t[1], 'type': t[2].strip()})
 				lst = res_str[-1]
