@@ -27,9 +27,8 @@ def probe(fn):
 			t = s2[i][1].split(':', 1)
 			res1[t[0].strip().lower()] = t[1].strip()
 			i += 1
-			if t[0].strip().lower() == 'cuesheet': # throw cue sheet
-				while i < len(s2) and s2[i][0] > 4:
-					i += 1
+			while i < len(s2) and s2[i][0] > 4: # throw cue sheet and all multi line metadata
+				i += 1
 	assert s2[i][0] == 2
 	for j in s2[i][1].split(','):
 		t = j.split(':', 1)
