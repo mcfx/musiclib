@@ -1,4 +1,6 @@
 from subprocess import Popen, PIPE
+from io import BytesIO
+from PIL import Image
 
 def get_space_cnt(s):
 	t = 0
@@ -64,6 +66,11 @@ def extract_image(fn):
 	p = Popen(['ffmpeg', '-i', fn, '-vcodec', 'copy', '-an', '-f', 'singlejpeg', '-'], stdout = PIPE, stderr = PIPE)
 	so, er = p.communicate()
 	if len(so):
+		f = BytesIO(so)
+		try:
+			Image.open(f)
+		except: # not a real image
+			return None
 		return so
 	return None
 
