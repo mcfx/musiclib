@@ -1,4 +1,4 @@
-import os, io, json, time, shutil, hashlib, datetime
+import os, io, json, time, shutil, hashlib, datetime, traceback
 import subprocess
 from copy import deepcopy
 
@@ -214,53 +214,59 @@ def file_process_thread():
 		if task is None:
 			time.sleep(0.5)
 			continue
-		if task['type'] in ['album_scan', 'album_log', 'album_other', 'album_cover']:
-			path = task['path']
-			task_result = None
-			if task['type'] == 'album_log':
-				log_files = db.select_first("select log_files from albums where id = %(id)s", {'id': task['album_id']})[0]
-				log_new = files.add_file(path)
-				log_files = (log_files + ',' + log_new).strip(',')
-				db.execute("update albums set log_files = %(lf)s where id = %(id)s", {'id': task['album_id'], 'lf': log_files})
-			elif task['type'] == 'album_scan':
+		try:
+			if task['type'] in ['album_scan', 'album_log', 'album_other', 'album_cover']:
+				path = task['path']
+				task_result = None
+				if task['type'] == 'album_log':
+					log_files = db.select_first("select log_files from albums where id = %(id)s", {'id': task['album_id']})[0]
+					log_new = files.add_file(path)
+					log_files = (log_files + ',' + log_new).strip(',')
+					db.execute("update albums set log_files = %(lf)s where id = %(id)s", {'id': task['album_id'], 'lf': log_files})
+				elif task['type'] == 'album_scan':
+					res, err, depath = try_decompress(path)
+					if res == False:
+						task_result = {'status': False, 'error': err}
+					else:
+						add_scans(depath, '', task['album_id'])
+						task_result = {'status': True}
+				elif task['type'] == 'album_cover':
+					cover_files = db.select_first("select cover_files from albums where id = %(id)s", {'id': task['album_id']})[0]
+					cover_new = files.add_file(path)
+					cover_files = (cover_files + ',' + cover_new).strip(',')
+					db.execute("update albums set cover_files = %(cf)s where id = %(id)s", {'id': task['album_id'], 'cf': cover_files})
+					task_result = {'status': True}
+				else:
+					task_result = {'status': True}
+				backup_album_file(path, task['album_id'], task['filename'])
+				ft_lock.acquire()
+				ft_done.append({'task': task, 'result': task_result, 'done_time': int(time.time())})
+				ft_lock.release()
+			elif task['type'] == 'new_album':
+				path = task['path']
+				task_result = None
 				res, err, depath = try_decompress(path)
 				if res == False:
 					task_result = {'status': False, 'error': err}
 				else:
-					add_scans(depath, '', task['album_id'])
-					task_result = {'status': True}
-			elif task['type'] == 'album_cover':
-				cover_files = db.select_first("select cover_files from albums where id = %(id)s", {'id': task['album_id']})[0]
-				cover_new = files.add_file(path)
-				cover_files = (cover_files + ',' + cover_new).strip(',')
-				db.execute("update albums set cover_files = %(cf)s where id = %(id)s", {'id': task['album_id'], 'cf': cover_files})
-				task_result = {'status': True}
-			else:
-				task_result = {'status': True}
-			backup_album_file(path, task['album_id'], task['filename'])
+					res, albumid = album_init(depath)
+					if res:
+						task_result = {'status': True}
+						backup_album_file(path, albumid, task['filename'])
+					else:
+						task_result = {'status': False, 'error': 'Failed to get album info'}
+				ft_lock.acquire()
+				ft_done.append({'task': task, 'result': task_result, 'done_time': int(time.time())})
+				ft_lock.release()
+			elif task['type'] == 'album_gen_flac':
+				gen_final_flac(task_ext)
+				ft_lock.acquire()
+				ft_done.append({'task': task, 'result': {'status': True}, 'done_time': int(time.time())})
+				ft_lock.release()
+		except:
+			err = traceback.format_exc()
 			ft_lock.acquire()
-			ft_done.append({'task': task, 'result': task_result, 'done_time': int(time.time())})
-			ft_lock.release()
-		elif task['type'] == 'new_album':
-			path = task['path']
-			task_result = None
-			res, err, depath = try_decompress(path)
-			if res == False:
-				task_result = {'status': False, 'error': err}
-			else:
-				res, albumid = album_init(depath)
-				if res:
-					task_result = {'status': True}
-					backup_album_file(path, albumid, task['filename'])
-				else:
-					task_result = {'status': False, 'error': 'Failed to get album info'}
-			ft_lock.acquire()
-			ft_done.append({'task': task, 'result': task_result, 'done_time': int(time.time())})
-			ft_lock.release()
-		elif task['type'] == 'album_gen_flac':
-			gen_final_flac(task_ext)
-			ft_lock.acquire()
-			ft_done.append({'task': task, 'result': {'status': True}, 'done_time': int(time.time())})
+			ft_done.append({'task': task, 'result': {'status': False, 'error': err}, 'done_time': int(time.time())})
 			ft_lock.release()
 
 def start_process_thread(app):
@@ -270,3 +276,5 @@ def start_process_thread(app):
 	ft = Thread(target = run)
 	ft.setDaemon(True)
 	ft.start()
+
+album_init(r'D:\Work\proj\mu\tflac\test')
