@@ -112,7 +112,7 @@ Vue.component('scans', {
 	<div>
 		<v-card-title><text-edit :text="scan.packname" :pushurl="'/api/scan/' + scan.id + '/update_name'" pushkey="name"></text-edit></v-card-title>
 		<v-card-text>
-			<div v-viewer="{url: 'data-src'}" class="images">
+			<div v-viewer="{url: 'data-src'}">
 				<v-row>
 					<v-col cols="2" v-for="img in scan.files">
 						<v-card flat>
@@ -297,7 +297,7 @@ const Album = {
 			<v-tab> Add files </v-tab>
 			<v-tab-item>
 				<v-card-text v-if="cover_files.length">
-					<div v-viewer class="images">
+					<div v-viewer>
 						<draggable v-model="cover_files" group="cover-files" tag="v-row" @end="update_covers">
 							<v-col cols="2" v-for="item in cover_files">
 								<v-card flat>
