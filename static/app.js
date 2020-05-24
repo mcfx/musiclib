@@ -232,7 +232,7 @@ Vue.component('add-playlist', {
 		},
 		doSearch: function() {
 			axios.get('/api/playlist/search', {params: {query: this.search, page: 0}}).then(response => {
-				this.playlists = response.data.data;
+				this.playlists = response.data.data.playlists;
 			})
 		},
 		addTo: function(playlist) {
