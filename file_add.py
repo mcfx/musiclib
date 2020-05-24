@@ -276,3 +276,5 @@ def start_process_thread(app):
 	ft = Thread(target = run)
 	ft.setDaemon(True)
 	ft.start()
+
+album_init(r'D:\Work\proj\mu\tflac\test')

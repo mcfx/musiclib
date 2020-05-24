@@ -78,3 +78,5 @@ def convert(src, dst):
 	cmd = ['ffmpeg', '-y', '-i', src, dst]
 	p = Popen(cmd, stdout = PIPE, stderr = PIPE)
 	so, er = p.communicate()
+	if er != b'':
+		raise Exception(er.decode())
