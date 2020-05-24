@@ -145,6 +145,8 @@ def send_index():
 def search_album():
 	query = request.values.get('query')
 	page = int(request.values.get('page'))
+	if page < 0 or page > config.PAGE_MAX:
+		return jsonify({'status': False})
 	reqs = [Album.title, Album.artist, Album.comments]
 	req = reduce(or_, map(lambda y: reduce(and_, map(lambda x: y.like('%' + x + '%'), query.split()), True), reqs))
 	count = Album.query.filter(req).count()
@@ -287,6 +289,8 @@ def album_upload():
 def search_song():
 	query = request.values.get('query')
 	page = int(request.values.get('page'))
+	if page < 0 or page > config.PAGE_MAX:
+		return jsonify({'status': False})
 	reqs = [Song.title, Song.artist]
 	req = reduce(or_, map(lambda y: reduce(and_, map(lambda x: y.like('%' + x + '%'), query.split()), True), reqs))
 	count = Song.query.filter(req).count()
@@ -368,6 +372,8 @@ def get_log_download(id):
 def search_playlist():
 	query = request.values.get('query')
 	page = int(request.values.get('page'))
+	if page < 0 or page > config.PAGE_MAX:
+		return jsonify({'status': False})
 	req_title = reduce(and_, map(lambda x: Playlist.title.like('%' + x + '%'), query.split()), True)
 	req_description = reduce(and_, map(lambda x: Playlist.description.like('%' + x + '%'), query.split()), True)
 	count = Playlist.query.filter(or_(req_title, req_description)).count()
