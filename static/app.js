@@ -8,6 +8,7 @@ function emit_download(url) {
 const ap = new APlayer({
 	container: document.getElementById('aplayer'),
 	fixed: true,
+	mode: 'random',
 	preload: 'auto',
 	volume: 0.7,
 	mutex: true,
@@ -527,22 +528,90 @@ const Albums = {
 				</tr>
 			</tbody>
 		</v-simple-table>
+		<div class="text-center" v-if="count > results_per_page">
+			<v-pagination v-model="cur_page" :length="Math.ceil(count / results_per_page)" @input="doSearch"></v-pagination>
+		</div>
 	</div>
 	`,
 	data: function() {
 		return {
 			search: '',
+			count: 0,
+			cur_page: 1,
 			albums: [],
 		}
 	},
 	created: function() {
-		this.debouncedSearch = _.debounce(() => { this.doSearch() }, 150);
+		this.debouncedSearch = _.debounce(() => { this.cur_page = 1; this.doSearch() }, 150);
 		this.doSearch();
 	},
 	methods: {
 		doSearch: function() {
-			axios.get('/api/album/search', {params: {query: this.search}}).then(response => {
-				this.albums = response.data.data;
+			axios.get('/api/album/search', {params: {query: this.search, page: this.cur_page - 1}}).then(response => {
+				this.albums = response.data.data.albums;
+				this.count = response.data.data.count;
+			})
+		}
+	}
+}
+
+const Songs = {
+	template: `
+	<div>
+		<v-text-field v-model="search" label="Search for albums" @input="debouncedSearch()"></v-text-field>
+		<v-simple-table>
+			<thead>
+				<tr>
+					<th class="text-left">#</th>
+					<th class="text-left" style="min-width:130px"></th>
+					<th class="text-left">Title</th>
+					<th class="text-left">Duration</th>
+					<th class="text-left">Artist</th>
+					<th class="text-left">Album</th>
+					<th class="text-left">Format</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr v-for="(item, key) in songs" :key="'song' + item.id">
+					<td>{{ key + 1 + (cur_show_page - 1) * results_per_page }}</td>
+					<td>
+						<v-btn text icon small v-on:click="setPlayList(tracks, key)"><v-icon>mdi-play-circle</v-icon></v-btn>
+						<v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn>
+						<v-btn text icon small v-on:click="$refs.add_playlist.add(item)"><v-icon>mdi-folder-plus</v-icon></v-btn>
+					</td>
+					<td>{{ item.title }}</td>
+					<td>{{ item.duration }}</td>
+					<td>{{ item.artist }}</td>
+					<td><router-link :to="'/album/' + item.album_id">{{ item.album_title }}</router-link></td>
+					<td>{{ getFormatString(item) }}</td>
+				</tr>
+			</tbody>
+		</v-simple-table>
+		<div class="text-center" v-if="count > results_per_page">
+			<v-pagination v-model="cur_page" :length="Math.ceil(count / results_per_page)" @input="doSearch"></v-pagination>
+		</div>
+		<add-playlist ref="add_playlist"></add-playlist>
+	</div>
+	`,
+	data: function() {
+		return {
+			search: '',
+			count: 0,
+			cur_page: 1,
+			cur_show_page: 1,
+			songs: [],
+		}
+	},
+	created: function() {
+		this.debouncedSearch = _.debounce(() => { this.cur_page = 1; this.doSearch() }, 150);
+		this.doSearch();
+	},
+	methods: {
+		doSearch: function() {
+			axios.get('/api/song/search', {params: {query: this.search, page: this.cur_page - 1}}).then(response => {
+				this.songs = response.data.data.songs;
+				this.count = response.data.data.count;
+				this.cur_show_page = this.cur_page;
 			})
 		}
 	}
@@ -564,6 +633,7 @@ const Playlist = {
 					<th class="text-left">Duration</th>
 					<th class="text-left">Artist</th>
 					<th class="text-left">Album</th>
+					<th class="text-left">Format</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -578,6 +648,7 @@ const Playlist = {
 					<td>{{ item.duration }}</td>
 					<td>{{ item.artist }}</td>
 					<td><router-link :to="'/album/' + item.album_id">{{ item.album_title }}</router-link></td>
+					<td>{{ getFormatString(item) }}</td>
 				</tr>
 			</tbody>
 		</v-simple-table>
@@ -706,22 +777,28 @@ const Playlists = {
 				</tr>
 			</tbody>
 		</v-simple-table>
+		<div class="text-center" v-if="count > results_per_page">
+			<v-pagination v-model="cur_page" :length="Math.ceil(count / results_per_page)" @input="doSearch"></v-pagination>
+		</div>
 	</div>
 	`,
 	data: function() {
 		return {
 			search: '',
+			count: 0,
+			cur_page: 1,
 			playlists: [],
 		}
 	},
 	created: function() {
-		this.debouncedSearch = _.debounce(() => { this.doSearch() }, 150);
+		this.debouncedSearch = _.debounce(() => { this.cur_page = 1; this.doSearch() }, 150);
 		this.doSearch();
 	},
 	methods: {
 		doSearch: function() {
-			axios.get('/api/playlist/search', {params: {query: this.search}}).then(response => {
-				this.playlists = response.data.data;
+			axios.get('/api/playlist/search', {params: {query: this.search, page: this.cur_page - 1}}).then(response => {
+				this.playlists = response.data.data.playlists;
+				this.count = response.data.data.count;
 			})
 		}
 	}
@@ -848,6 +925,7 @@ const router = new VueRouter({
 		{ path: '/album/:id', component: Album, name: 'album', meta: {title: route => { return route.params.id + ' - Albums' }}},
 		{ path: '/album/:id/edit', component: AlbumEdit, name: 'album_edit', meta: {title: route => { return route.params.id + ' - Edit - Albums' }}},
 		{ path: '/albums', component: Albums, name: 'albums', meta: {title: 'Albums' }},
+		{ path: '/songs', component: Songs, name: 'songs', meta: {title: 'Songs' }},
 		{ path: '/playlist/:id', component: Playlist, name: 'playlist', meta: {title: route => { return route.params.id + ' - Playlists' }}},
 		{ path: '/playlist/:id/edit', component: PlaylistEdit, name: 'playlist_edit', meta: {title: route => { return route.params.id + ' - Edit - Playlists' }}},
 		{ path: '/playlists', component: Playlists, name: 'playlists', meta: {title: 'Playlists' }},

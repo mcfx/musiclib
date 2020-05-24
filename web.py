@@ -144,15 +144,17 @@ def send_index():
 @skip_error_and_auth
 def search_album():
 	query = request.values.get('query')
+	page = int(request.values.get('page'))
 	reqs = [Album.title, Album.artist, Album.comments]
 	req = reduce(or_, map(lambda y: reduce(and_, map(lambda x: y.like('%' + x + '%'), query.split()), True), reqs))
-	albums = Album.query.filter(req).order_by(Album.id.desc()).all()
+	count = Album.query.filter(req).count()
+	albums = Album.query.filter(req).order_by(Album.id.desc()).all()[page * config.RESULTS_PER_PAGE: (page + 1) * config.RESULTS_PER_PAGE]
 	res = []
 	for album in albums:
 		tmp = album_schema.dump(album)
 		tmp.pop('cover_files')
 		res.append(tmp)
-	return jsonify({'status': True, 'data': res})
+	return jsonify({'status': True, 'data': {'count': count, 'albums': res}})
 
 @app.route('/api/album/<id>/info')
 @skip_error_and_auth
@@ -280,6 +282,23 @@ def album_upload():
 	add_file_task({'type': 'new_album', 'path': fp, 'filename': ofn})
 	return jsonify({'status': True, 'msg': 'Added to queue'})
 
+@app.route('/api/song/search')
+@skip_error_and_auth
+def search_song():
+	query = request.values.get('query')
+	page = int(request.values.get('page'))
+	reqs = [Song.title, Song.artist]
+	req = reduce(or_, map(lambda y: reduce(and_, map(lambda x: y.like('%' + x + '%'), query.split()), True), reqs))
+	count = Song.query.filter(req).count()
+	songs = Song.query.filter(req).order_by(Song.id.desc())[page * config.RESULTS_PER_PAGE: (page + 1) * config.RESULTS_PER_PAGE]
+	res = []
+	for song in songs:
+		album = Album.query.filter(Album.id == song.album_id).one()
+		tmp = song_schema.dump(song)
+		tmp['album_title'] = album.title
+		res.append(tmp)
+	return jsonify({'status': True, 'data': {'count': count, 'songs': res}})
+
 @app.route('/api/song/<id>/link')
 @skip_error_and_auth
 def get_song_link(id):
@@ -348,11 +367,13 @@ def get_log_download(id):
 @skip_error_and_auth
 def search_playlist():
 	query = request.values.get('query')
+	page = int(request.values.get('page'))
 	req_title = reduce(and_, map(lambda x: Playlist.title.like('%' + x + '%'), query.split()), True)
 	req_description = reduce(and_, map(lambda x: Playlist.description.like('%' + x + '%'), query.split()), True)
-	playlists = Playlist.query.filter(or_(req_title, req_description)).order_by(Playlist.last_update.desc()).all()
+	count = Playlist.query.filter(or_(req_title, req_description)).count()
+	playlists = Playlist.query.filter(or_(req_title, req_description)).order_by(Playlist.last_update.desc())[page * config.RESULTS_PER_PAGE: (page + 1) * config.RESULTS_PER_PAGE]
 	res = list(map(lambda x: {'id': x.id, 'title': x.title, 'description': x.description, 'len_tracks': len(x.tracklist)}, playlists))
-	return jsonify({'status': True, 'data': res})
+	return jsonify({'status': True, 'data': {'count': count, 'playlists': res}})
 
 @app.route('/api/playlist/<id>/info')
 @skip_error_and_auth

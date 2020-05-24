@@ -16,4 +16,6 @@ BACKUP_PATH = ''
 
 TRUSTED_EXTENSIONS = ['zip', 'rar', '7z', 'log', 'txt', 'jpg']
 
+RESULTS_PER_PAGE = 50
+
 DEBUG = True
