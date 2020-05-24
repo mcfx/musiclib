@@ -207,7 +207,7 @@ def file_process_thread():
 		tm = int(time.time())
 		nd = []
 		for i in ft_done:
-			if tm - i['done_time'] < 86400:
+			if tm - i['done_time'] < config.TASK_CLEAR_TIME:
 				nd.append(i)
 		ft_done = nd
 		ft_lock.release()

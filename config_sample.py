@@ -19,4 +19,6 @@ TRUSTED_EXTENSIONS = ['zip', 'rar', '7z', 'log', 'txt', 'jpg']
 RESULTS_PER_PAGE = 50
 PAGE_MAX = 1000000
 
+TASK_CLEAR_TIME = 7200 # 2 hours
+
 DEBUG = True
