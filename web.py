@@ -319,10 +319,12 @@ def get_song_link(id):
 
 @app.route('/api/songs/<ids>/play')
 @skip_error_and_auth
-def get_songs_play(ids):
+def get_songs_play(ids, full = False):
 	ids = list(map(int, ids.split(',')))
 	res_files = []
 	covers = []
+	titles = []
+	artists = []
 	for id in ids:
 		song = Song.query.filter(Song.id == id).first()
 		if song is None:
@@ -340,7 +342,19 @@ def get_songs_play(ids):
 			covers.append(files.get_link(album.cover_files[0], 'cover.jpg'))
 		else:
 			covers.append('')
-	return jsonify({'status': True, 'data': {'files': res_files, 'covers': covers}})
+		if full:
+			titles.append(song.title)
+			artists.append(song.artist)
+	res = {'files': res_files, 'covers': covers}
+	if full:
+		res['titles'] = titles
+		res['artists'] = artists
+	return jsonify({'status': True, 'data': res})
+
+@app.route('/api/songs/<ids>/play/full')
+@skip_error_and_auth
+def get_songs_play_full(ids):
+	return get_songs_play(ids, True)
 
 @app.route('/api/scan/<id>/update_name', methods = ['POST'])
 @skip_error_and_auth
@@ -383,13 +397,13 @@ def search_playlist():
 
 @app.route('/api/playlist/<id>/info')
 @skip_error_and_auth
-def get_playlist_info(id):
+def get_playlist_info(id, page = 0):
 	id = int(id)
 	playlist = Playlist.query.filter(Playlist.id == id).first()
 	if playlist is None:
 		return jsonify({'status': False})
-	res = {'id': playlist.id, 'title': playlist.title, 'description': playlist.description, 'tracks': []}
-	for i in playlist.tracklist:
+	res = {'id': playlist.id, 'title': playlist.title, 'description': playlist.description, 'tracks': [], 'count_tracks': len(playlist.tracklist), 'full_tracklist': playlist.tracklist}
+	for i in playlist.tracklist[page * config.RESULTS_PER_PAGE: (page + 1) * config.RESULTS_PER_PAGE]:
 		song = Song.query.filter(Song.id == i).first()
 		if song is None:
 			return jsonify({'status': False})
@@ -398,6 +412,14 @@ def get_playlist_info(id):
 		song['album_title'] = album.title
 		res['tracks'].append(song)
 	return jsonify({'status': True, 'data': res})
+
+@app.route('/api/playlist/<id>/info/page/<page>')
+@skip_error_and_auth
+def get_playlist_info_page(id, page):
+	page = int(page)
+	if page < 0 or page > config.PAGE_MAX:
+		return jsonify({'status': False})
+	return get_playlist_info(id, page)
 
 @app.route('/api/playlist/<id>/addtrack', methods = ['POST'])
 @skip_error_and_auth

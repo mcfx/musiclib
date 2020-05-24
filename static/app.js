@@ -17,14 +17,14 @@ const ap = new APlayer({
 	audio: []
 });
 
-function setPlayList(tracks, cur_play = 0) {
-	axios.get('/api/songs/' + tracks.map(track => track.id).join() + '/play').then(response => {
-		var files = response.data.data.files, covers = response.data.data.covers, al = [];
+function setPlayList(tracks, cur_play = 0, id_only = false) {
+	axios.get('/api/songs/' + (id_only ? tracks : tracks.map(track => track.id)).join() + '/play' + (id_only ? '/full' : '')).then(response => {
+		var data = response.data.data, files = data.files, covers = data.covers, titles = data.titles, artists = data.artists, al = [];
 		try { ap.list.clear(); } catch(e) {}
 		for (var i = 0; i < tracks.length; i++) {
 			al.push({
-				name: tracks[i].title,
-				artist: tracks[i].artist,
+				name: id_only ? titles[i] : tracks[i].title,
+				artist: id_only ? artists[i] : tracks[i].artist,
 				url: files[i],
 				cover: covers[i]
 			})
@@ -638,9 +638,9 @@ const Playlist = {
 			</thead>
 			<tbody>
 				<tr v-for="(item, key) in tracks" :key="'track' + item.id">
-					<td>{{ key + 1 }}</td>
+					<td>{{ key + 1 + (cur_show_page - 1) * results_per_page }}</td>
 					<td>
-						<v-btn text icon small v-on:click="setPlayList(tracks, key)"><v-icon>mdi-play-circle</v-icon></v-btn>
+						<v-btn text icon small v-on:click="setPlayList(full_tracklist, key, true)"><v-icon>mdi-play-circle</v-icon></v-btn>
 						<v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn>
 						<v-btn text icon small v-on:click="$refs.add_playlist.add(item)"><v-icon>mdi-folder-plus</v-icon></v-btn>
 					</td>
@@ -652,6 +652,9 @@ const Playlist = {
 				</tr>
 			</tbody>
 		</v-simple-table>
+		<div class="text-center" v-if="count_tracks > results_per_page">
+			<v-pagination v-model="cur_page" :length="Math.ceil(count_tracks / results_per_page)" @input="init"></v-pagination>
+		</div>
 		<add-playlist ref="add_playlist"></add-playlist>
 	</div>
 	`,
@@ -660,7 +663,11 @@ const Playlist = {
 			id: -1,
 			title: '',
 			description: '',
-			tracks: []
+			count_tracks: 0,
+			cur_page: 1,
+			cur_show_page: 1,
+			tracks: [],
+			full_tracklist: ''
 		}
 	},
 	created: function() {
@@ -669,9 +676,10 @@ const Playlist = {
 	},
 	methods: {
 		init: function() {
-			axios.get('/api/playlist/' + this.id + '/info').then(response => {
+			axios.get('/api/playlist/' + this.id + '/info/page/' + (this.cur_page - 1)).then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
+				this.cur_show_page = this.cur_page;
 				document.title = this.title + ' - Playlists';
 			})
 		},
