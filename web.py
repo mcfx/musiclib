@@ -200,6 +200,20 @@ def update_album_info(id):
 	db.session.commit()
 	return jsonify({'status': True})
 
+@app.route('/api/album/<id>/update_covers', methods=['POST'])
+@skip_error_and_auth
+def update_album_covers(id):
+	id = int(id)
+	album = Album.query.filter(Album.id == id).first()
+	if album is None:
+		return jsonify({'status': False})
+	nc = list(map(lambda x: files.get_hash_by_link(x), request.json['covers']))
+	if type(nc) is not list or sorted(nc) != sorted(album.cover_files):
+		return jsonify({'status': False})
+	album.cover_files = nc
+	db.session.commit()
+	return jsonify({'status': True})
+
 @app.route('/api/album/<id>/scans')
 @skip_error_and_auth
 def get_album_scans(id):

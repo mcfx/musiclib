@@ -110,6 +110,10 @@ def get_link(hash, dlname = 'file', expire = 3600):
 	sig = sign(hash, expire)
 	return '/file/%s/%s?expire=%d&sign=%s' % (hash, dlname, expire, sig)
 
+def get_hash_by_link(link):
+	s = link.split('?')[0].split('/')
+	return s[2] + '.' + get_ext(s[3])
+
 @app.route('/file/<hash>/<dlname>')
 @skip_error
 def get_file(hash, dlname):

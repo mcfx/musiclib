@@ -298,7 +298,7 @@ const Album = {
 			<v-tab-item>
 				<v-card-text v-if="cover_files.length">
 					<div v-viewer class="images">
-						<v-row>
+						<draggable v-model="cover_files" group="cover-files" tag="v-row" @end="update_covers">
 							<v-col cols="2" v-for="item in cover_files">
 								<v-card flat>
 									<img :src="item" style="width:100%" :key="'cover' + item"></img>
@@ -415,6 +415,9 @@ const Album = {
 					_this.gen_flac_result = '';
 				}, 3000);
 			})
+		},
+		update_covers: function() {
+			axios.post('/api/album/' + this.id + '/update_covers', {covers: this.cover_files})
 		}
 	}
 }
