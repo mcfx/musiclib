@@ -2,6 +2,8 @@ import os, traceback
 from PIL import Image
 from .utils import get_ext
 
+Image.MAX_IMAGE_PIXELS = None
+
 def get_converted_images(fo, dstfo):
 	if fo[-1] != '/':
 		fo += '/'
