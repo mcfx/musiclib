@@ -231,7 +231,7 @@ Vue.component('add-playlist', {
 			this.doSearch();
 		},
 		doSearch: function() {
-			axios.get('/api/playlist/search', {params: {query: this.search}}).then(response => {
+			axios.get('/api/playlist/search', {params: {query: this.search, page: 0}}).then(response => {
 				this.playlists = response.data.data;
 			})
 		},
