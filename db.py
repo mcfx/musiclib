@@ -6,7 +6,9 @@ def getdb():
 
 db = getdb()
 
-def execute(s, args = None, tdb = db):
+def execute(s, args = None, tdb = None):
+	if tdb is None:
+		tdb = db
 	try:
 		cur = tdb.cursor()
 		cur.execute(s, args)
@@ -14,17 +16,23 @@ def execute(s, args = None, tdb = db):
 		pass
 	return cur
 
-def select(s, args = None, tdb = db):
+def select(s, args = None, tdb = None):
+	if tdb is None:
+		tdb = db
 	cur = tdb.cursor()
 	cur.execute(s, args)
 	return cur
 
-def select_first(s, args = None, tdb = db):
+def select_first(s, args = None, tdb = None):
+	if tdb is None:
+		tdb = db
 	for i in select(s, args, tdb):
 		return i
 	return None
 
-def count(s, args = None, tdb = db):
+def count(s, args = None, tdb = None):
+	if tdb is None:
+		tdb = db
 	cur = tdb.cursor()
 	cur.execute(s, args)
 	for i in cur:
