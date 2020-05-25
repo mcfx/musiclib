@@ -29,6 +29,8 @@ def process_format(s):
 			bit = 16
 		elif 's32 (24 bit)' in s:
 			bit = 24
+		elif 's32p (24 bit)' in s:
+			bit = 24
 		elif 's32' in s:
 			bit = 32
 		if s[:3] == 'pcm':
