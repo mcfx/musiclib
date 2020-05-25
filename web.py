@@ -251,7 +251,7 @@ def album_gen_flac(id):
 	album = Album.query.filter(Album.id == id).first()
 	if album is None:
 		return jsonify({'status': False})
-	if album.format != 'flac':
+	if album.quality == 'lossy' or album.quality == '':
 		return jsonify({'status': False})
 	songs = Song.query.filter(Song.album_id == id).order_by(Song.track).all()
 	album.tracks = songs

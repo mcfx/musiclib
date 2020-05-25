@@ -258,7 +258,7 @@ const Album = {
 					Trusted: {{ trusted ? 'yes' : 'no' }} <br>
 					Comments: {{ comments }} <br>
 					<v-btn text small @click="edit()" class="no-upper-case">Edit</v-btn>
-					<span v-if="format == 'flac'">
+					<span v-if="quality && quality != 'lossy'">
 						<v-btn text small @click="gen_flac()" class="no-upper-case">Gen Flac</v-btn>
 						<span v-if="gen_flac_result.length">{{ gen_flac_result }}</span>
 					</span>
