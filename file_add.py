@@ -215,6 +215,7 @@ def file_process_thread():
 			time.sleep(0.5)
 			continue
 		try:
+			db.renew()
 			if task['type'] in ['album_scan', 'album_log', 'album_other', 'album_cover']:
 				path = task['path']
 				task_result = None

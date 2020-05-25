@@ -29,3 +29,8 @@ def count(s, args = None, tdb = db):
 	cur.execute(s, args)
 	for i in cur:
 		return i[0]
+
+def renew():
+	global db
+	db.close()
+	db = getdb()
