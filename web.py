@@ -411,13 +411,17 @@ def search_playlist():
 
 @app.route('/api/playlist/<id>/info')
 @skip_error_and_auth
-def get_playlist_info(id, page = 0):
+def get_playlist_info(id, page = -1):
 	id = int(id)
 	playlist = Playlist.query.filter(Playlist.id == id).first()
 	if playlist is None:
 		return jsonify({'status': False})
 	res = {'id': playlist.id, 'title': playlist.title, 'description': playlist.description, 'tracks': [], 'count_tracks': len(playlist.tracklist), 'full_tracklist': playlist.tracklist}
-	for i in playlist.tracklist[page * config.RESULTS_PER_PAGE: (page + 1) * config.RESULTS_PER_PAGE]:
+	if page >= 0:
+		sp = playlist.tracklist[page * config.RESULTS_PER_PAGE: (page + 1) * config.RESULTS_PER_PAGE]
+	else:
+		sp = playlist.tracklist
+	for i in sp:
 		song = Song.query.filter(Song.id == i).first()
 		if song is None:
 			return jsonify({'status': False})
