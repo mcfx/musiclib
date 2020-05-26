@@ -616,6 +616,11 @@ const Songs = {
 				this.count = response.data.data.count;
 				this.cur_show_page = this.cur_page;
 			})
+		},
+		download_song: function(item) {
+			axios.get('/api/song/' + item.id + '/link').then(response => {
+				emit_download(response.data.data.file);
+			})
 		}
 	}
 }
