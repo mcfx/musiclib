@@ -42,6 +42,12 @@ function getFormatString(album) {
 	return album.format + ', ' + tmp;
 }
 
+function download_song(item) {
+	axios.get('/api/song/' + item.id + '/link').then(response => {
+		emit_download(response.data.data.file_flac || response.data.data.file);
+	})
+}
+
 const opts = { dark: false };
 Vue.use(Vuetify);
 Vue.use(VueViewer.default);
@@ -389,11 +395,6 @@ const Album = {
 				this.scans = response.data.data;
 			})
 		},
-		download_song: function(item) {
-			axios.get('/api/song/' + item.id + '/link').then(response => {
-				emit_download(response.data.data.file_flac || response.data.data.file);
-			})
-		},
 		edit: function() {
 			this.$router.push({ name: 'album_edit', params: { id: this.id } });
 		},
@@ -616,11 +617,6 @@ const Songs = {
 				this.count = response.data.data.count;
 				this.cur_show_page = this.cur_page;
 			})
-		},
-		download_song: function(item) {
-			axios.get('/api/song/' + item.id + '/link').then(response => {
-				emit_download(response.data.data.file);
-			})
 		}
 	}
 }
@@ -691,11 +687,6 @@ const Playlist = {
 				document.title = this.title + ' - Playlists';
 			})
 		},
-		download_song: function(item) {
-			axios.get('/api/song/' + item.id + '/link').then(response => {
-				emit_download(response.data.data.file);
-			})
-		},
 		edit: function() {
 			this.$router.push({ name: 'playlist_edit', params: { id: this.id } });
 		}
@@ -755,11 +746,6 @@ const PlaylistEdit = {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
 				document.title = this.title + ' - Edit - Playlists';
-			})
-		},
-		download_song: function(item) {
-			axios.get('/api/song/' + item.id + '/link').then(response => {
-				emit_download(response.data.data.file);
 			})
 		},
 		submit: function() {
