@@ -274,6 +274,17 @@ def start_process_thread(app):
 	def run():
 		with app.app_context():
 			file_process_thread()
+	fo = config.TEMP_PATH
+	if fo[-1] != '/':
+		fo += '/'
+	def md(s):
+		if not os.path.exists(fo + s):
+			os.mkdir(fo + s)
+	md('album_init')
+	md('decompress')
+	md('gen_flac')
+	md('scans')
+	md('upload')
 	ft = Thread(target = run)
 	ft.setDaemon(True)
 	ft.start()
