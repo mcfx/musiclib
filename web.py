@@ -41,6 +41,15 @@ class CompactArray(types.TypeDecorator):
 		if len(value) == 0: return []
 		return list(map(self.basetype, value.split(',')))
 
+class JsonString(types.TypeDecorator): # do not use JSON of sqlalchemy for convenience
+	impl = types.TEXT
+	
+	def process_bind_param(self, value, dialect):
+		return json.dumps(value, separators = (',', ':'))
+	
+	def process_result_value(self, value, dialect):
+		return json.loads(value)
+
 class Album(db.Model):
 	__tablename__ = 'albums'
 	id = db.Column(db.Integer, primary_key = True, autoincrement = True)
@@ -56,6 +65,7 @@ class Album(db.Model):
 	log_files = db.Column(CompactArray)
 	cover_files = db.Column(CompactArray)
 	comments = db.Column(db.String)
+	extra_data = db.Column(JsonString)
 
 class Song(db.Model):
 	__tablename__ = 'songs'
@@ -70,6 +80,7 @@ class Song(db.Model):
 	quality_details = db.Column(db.String(50))
 	file = db.Column(db.String)
 	file_flac = db.Column(db.String)
+	extra_data = db.Column(JsonString)
 
 class Scan(db.Model):
 	__tablename__ = 'scans'

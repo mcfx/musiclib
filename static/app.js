@@ -644,7 +644,7 @@ const Playlist = {
 				<tr v-for="(item, key) in tracks" :key="'track' + item.id">
 					<td>{{ key + 1 + (cur_show_page - 1) * results_per_page }}</td>
 					<td>
-						<v-btn text icon small v-on:click="setPlayList(full_tracklist, key + (cur_show_page - 1) * results_per_page }}, true)"><v-icon>mdi-play-circle</v-icon></v-btn>
+<v-btn text icon small v-on:click="setPlayList(full_tracklist, key + (cur_show_page - 1) * results_per_page }}, true)"><v-icon>mdi-play-circle</v-icon></v-btn>
 						<v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn>
 						<v-btn text icon small v-on:click="$refs.add_playlist.add(item)"><v-icon>mdi-folder-plus</v-icon></v-btn>
 					</td>
