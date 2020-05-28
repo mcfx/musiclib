@@ -287,6 +287,19 @@ def album_match_acoustid(id):
 	add_file_task({'type': 'album_acoustid', 'album_id': id}, album)
 	return jsonify({'status': True})
 
+@app.route('/api/album/<id>/set_musicbrainz_id', methods = ['POST'])
+@skip_error_and_auth
+def album_set_musicbrainz_id(id):
+	id = int(id)
+	album = Album.query.filter(Album.id == id).first()
+	if album is None:
+		return jsonify({'status': False})
+	if album.format != 'flac':
+		return jsonify({'status': False})
+	mid = request.json['mid']
+	add_file_task({'type': 'album_musicbrainz_id', 'album_id': id, 'mid': mid})
+	return jsonify({'status': True})
+
 @app.route('/api/album/<id>/upload/<tp>', methods = ['POST'])
 @skip_error_and_auth
 def album_upload_files(id, tp):

@@ -603,8 +603,9 @@ const AlbumManage = {
 		<v-row>
 			<v-card-title> Manually Set Musicbrainz ID for Album </v-card-title>
 			<v-card-text>
-				<v-text-field label="Musicbrainz ID"></v-text-field>
-				<v-btn class="no-upper-case" outlined>Submit</v-btn>
+				<v-text-field label="Musicbrainz ID" v-model="musicbrainz_id"></v-text-field>
+				<v-btn class="no-upper-case" @click="set_musicbrainz_id()" outlined>Submit</v-btn>
+				<span v-if="set_musicbrainz_id_result.length">{{ set_musicbrainz_id_result }}</span>
 			</v-card-text>
 		</v-row>
 		<v-row>
@@ -640,6 +641,8 @@ const AlbumManage = {
 			selected_track: null,
 			track_musicbrainz: [],
 			track_musicbrainz_match: {},
+			musicbrainz_id: '',
+			set_musicbrainz_id_result: '',
 		}
 	},
 	watch: {
@@ -664,6 +667,15 @@ const AlbumManage = {
 				document.title = this.title + ' - ' + this.artist + ' - Manage - Albums';
 			})
 		},
+		set_musicbrainz_id: function() {
+			axios.post('/api/album/' + this.id + '/set_musicbrainz_id', {'mid': this.musicbrainz_id}).then(response => {
+				var _this = this;
+				this.set_musicbrainz_id_result = response.data.status ? 'Added to queue. Wait and then refresh the page.' : 'Error';
+				setTimeout(function() {
+					_this.set_musicbrainz_id_result = '';
+				}, 3000);
+			})
+		},
 		match_acoustid: function() {
 			axios.post('/api/album/' + this.id + '/match_acoustid').then(response => {
 				var _this = this;
@@ -685,6 +697,7 @@ const AlbumManage = {
 				if (this.songs[i].id == id) {
 					this.selected_track = this.songs[i];
 					this.track_musicbrainz = this.songs[i].extra_data.musicbrainz || [];
+					this.track_musicbrainz_match = {};
 				}
 			}
 		},
@@ -694,9 +707,6 @@ const AlbumManage = {
 					this.track_musicbrainz_match = this.track_musicbrainz[i];
 				}
 			}
-		},
-		test_change: function(e) {
-			console.log(e);
 		}
 	}
 }

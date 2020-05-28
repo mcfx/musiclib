@@ -9,7 +9,7 @@ from file_process.album_init import get_album_info, get_album_images, get_album_
 from file_process.ffmpeg import probe
 from file_process.scans import get_converted_images
 from file_process.flac import gen_flac
-from file_process.musicbrainz import match_albums
+from file_process.musicbrainz import match_albums, mb_get_release
 from file_utils import get_ext, clear_cache
 import files
 import db
@@ -121,18 +121,19 @@ def gen_final_flac(album):
 		tf = files.add_file(fn)
 		db.execute("update songs set file_flac = %(fn)s where id = %(id)s", {'id': album.tracks[i].id, 'fn': tf})
 
+def update_extra(table, id, s):
+	old = db.select_first("select extra_data from " + table + " where id = %(id)s", {'id': id})[0]
+	cur = json.loads(old)
+	cur['musicbrainz'] = s
+	cur = json.dumps(cur, separators = (',', ':'))
+	db.execute("update " + table + " set extra_data = %(ed)s where id = %(id)s", {'id': id, 'ed': cur})
+
 def match_acoustid(album):
 	paths = []
 	for i in range(len(album.tracks)):
 		track = album.tracks[i]
 		paths.append(files.get_path(track.file))
 	resa, res = match_albums(paths)
-	def update_extra(table, id, s):
-		old = db.select_first("select extra_data from " + table + " where id = %(id)s", {'id': id})[0]
-		cur = json.loads(old)
-		cur['musicbrainz'] = s
-		cur = json.dumps(cur, separators = (',', ':'))
-		db.execute("update " + table + " set extra_data = %(ed)s where id = %(id)s", {'id': id, 'ed': cur})
 	update_extra('albums', album.id, resa)
 	for i in range(len(album.tracks)):
 		track = album.tracks[i]
@@ -284,6 +285,11 @@ def file_process_thread():
 				ft_lock.release()
 			elif task['type'] == 'album_acoustid':
 				match_acoustid(task_ext)
+				ft_lock.acquire()
+				ft_done.append({'task': task, 'result': {'status': True}, 'done_time': int(time.time())})
+				ft_lock.release()
+			elif task['type'] == 'album_musicbrainz_id':
+				update_extra('albums', task['album_id'], [mb_get_release(task['mid'])])
 				ft_lock.acquire()
 				ft_done.append({'task': task, 'result': {'status': True}, 'done_time': int(time.time())})
 				ft_lock.release()

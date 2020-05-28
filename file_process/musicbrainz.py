@@ -11,7 +11,10 @@ def mb_get(path, params):
 	if tm - last_api_call < 1:
 		time.sleep(1 - tm + last_api_call)
 	last_api_call = tm
-	return requests.get(MB_API_BASE + path, params = params).json()
+	res = requests.get(MB_API_BASE + path, params = params).json()
+	if 'error' in res:
+		raise Exception('Error: ' + res['error'])
+	return res
 
 def mb_get_release(id):
 	return mb_get('release/' + id, {'inc': 'artist-credits recordings', 'fmt': 'json'})
