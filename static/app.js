@@ -42,6 +42,11 @@ function getFormatString(album) {
 	return album.format + ', ' + tmp;
 }
 
+function getDurationString(x) {
+	if (x >= 3600) return parseInt(x / 3600).toString() + ':' + parseInt(x / 60) % 60 + ':' + x % 60;
+	return parseInt(x / 60) % 60 + ':' + x % 60;
+}
+
 function download_song(item) {
 	axios.get('/api/song/' + item.id + '/link').then(response => {
 		emit_download(response.data.data.file_flac || response.data.data.file);
@@ -512,6 +517,190 @@ const AlbumEdit = {
 	}
 }
 
+const AlbumManage = {
+	template: `
+	<div data-app>
+		<v-row>
+			<v-card-title><h3> Manage: {{ title }} </h3></v-card-title>
+		</v-row>
+		<v-row>
+			<v-card-title> Musicbrainz Matches of Album </v-card-title>
+			<v-card-text v-if="!album_musicbrainz.length"> No matches </v-card-text>
+			<v-card-text v-else>
+				<v-select :items="album_musicbrainz" item-value="id" @change="change_musicbrainz_match_album" label="Select match">
+					<template v-slot:selection="data">
+						{{ data.item['artist-credit'][0].artist.name + ' - ' + data.item.title + ' (' + data.item.id + ')' }}
+					</template>
+					<template v-slot:item="data">
+						{{ data.item['artist-credit'][0].artist.name + ' - ' + data.item.title + ' (' + data.item.id + ')' }}
+					</template>
+				</v-select>
+				<div v-if="typeof(album_musicbrainz_match.id) != 'undefined'">
+					ID: <a :href="'https://musicbrainz.org/release/' + album_musicbrainz_match.id">{{ album_musicbrainz_match.id }}</a> <br>
+					Title: {{ album_musicbrainz_match.title }} <br>
+					Artist: {{ album_musicbrainz_match['artist-credit'][0].artist.name }} <br>
+					Release date: {{ album_musicbrainz_match.date }}
+					<v-simple-table>
+						<thead>
+							<tr>
+								<th class="text-left">#</th>
+								<th class="text-left">Title</th>
+								<th class="text-left">Duration</th>
+								<th class="text-left">Artist</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr v-for="item in album_musicbrainz_match.media[0].tracks" :key="'mbtrack' + item.id">
+								<td>{{ item.number }}</td>
+								<td>{{ item.title }}</td>
+								<td>{{ getDurationString(parseInt(item.length / 1000)) }}</td>
+								<td>{{ item['artist-credit'][0].artist.name }}</td>
+							</tr>
+						</tbody>
+					</v-simple-table>
+				</div>
+			</v-card-text>
+		</v-row>
+		<v-row>
+			<v-card-title> Musicbrainz Matches of Tracks </v-card-title>
+			<v-card-text>
+				<v-select :items="songs" item-value="id" @change="change_track" label="Select track">
+					<template v-slot:selection="data">
+						{{ data.item.track + '. ' + data.item.artist + ' - ' + data.item.title }}
+					</template>
+					<template v-slot:item="data">
+						{{ data.item.track + '. ' + data.item.artist + ' - ' + data.item.title }}
+					</template>
+				</v-select>
+				<div v-if="selected_track">
+					<div v-if="!track_musicbrainz.length"> No matches </div>
+					<div v-else>
+						<v-select :items="track_musicbrainz" item-value="id" @change="change_musicbrainz_match_track" label="Select match">
+							<template v-slot:selection="data">
+								{{ data.item['artist-credit'][0].artist.name + ' - ' + data.item.title + ' (' + data.item.id + ')' }}
+							</template>
+							<template v-slot:item="data">
+								{{ data.item['artist-credit'][0].artist.name + ' - ' + data.item.title + ' (' + data.item.id + ')' }}
+							</template>
+						</v-select>
+						<div v-if="typeof(track_musicbrainz_match.id) != 'undefined'">
+							ID: <a :href="'https://musicbrainz.org/recording/' + track_musicbrainz_match.id">{{ track_musicbrainz_match.id }}</a> <br>
+							Title: {{ track_musicbrainz_match.title }} <br>
+							Artist: {{ track_musicbrainz_match['artist-credit'][0].artist.name }} <br>
+							Duration: {{ getDurationString(parseInt(track_musicbrainz_match.length / 1000)) }}
+						</div>
+					</div>
+				</div>
+			</v-card-text>
+		</v-row>
+		<v-row>
+			<v-card-title> Match Musicbrainz with Acoustid </v-card-title>
+			<v-card-text>
+				<v-btn class="no-upper-case" @click="match_acoustid" outlined>Start Analyze</v-btn>
+				<span v-if="match_acoustid_result.length">{{ match_acoustid_result }}</span>
+			</v-card-text>
+		</v-row>
+		<v-row>
+			<v-card-title> Manually Set Musicbrainz ID for Album </v-card-title>
+			<v-card-text>
+				<v-text-field label="Musicbrainz ID"></v-text-field>
+				<v-btn class="no-upper-case" outlined>Submit</v-btn>
+			</v-card-text>
+		</v-row>
+		<v-row>
+			<v-card-title> Verify CD with CUETools </v-card-title>
+			<v-card-text>
+				<v-btn class="no-upper-case" outlined>Start Verify</v-btn>
+			</v-card-text>
+			<v-card-text>
+				<v-textarea value="111" style="font-size:10px" rows="25" label="CUETools Results" no-resize readonly outlined></v-textarea>
+			</v-card-text>
+		</v-row>
+	</div>
+	`,
+	data: function() {
+		return {
+			id: -1,
+			title: '',
+			release_date: null,
+			artist: '',
+			format: '',
+			quality: '',
+			quality_details: '',
+			source: '',
+			file_source: '',
+			trusted: '',
+			log_files: [],
+			cover_files: [],
+			comments: '',
+			songs: [],
+			extra_data: {},
+			match_acoustid_result: '',
+			album_musicbrainz_match: {},
+			selected_track: null,
+			track_musicbrainz: [],
+			track_musicbrainz_match: {},
+		}
+	},
+	watch: {
+		id: function(new_id, old_id) {
+			this.init()
+		}
+	},
+	created: function() {
+		this.id = this.$route.params.id;
+		this.init();
+	},
+	computed: {
+		album_musicbrainz: function() {
+			return this.extra_data.musicbrainz || [];
+		}
+	},
+	methods: {
+		init: function() {
+			axios.get('/api/album/' + this.id + '/info?extra_data').then(response => {
+				for (key in response.data.data)
+					this[key] = response.data.data[key];
+				document.title = this.title + ' - ' + this.artist + ' - Manage - Albums';
+			})
+		},
+		match_acoustid: function() {
+			axios.post('/api/album/' + this.id + '/match_acoustid').then(response => {
+				var _this = this;
+				this.match_acoustid_result = response.data.status ? 'Added to queue. Wait and then refresh the page.' : 'Error';
+				setTimeout(function() {
+					_this.match_acoustid_result = '';
+				}, 3000);
+			})
+		},
+		change_musicbrainz_match_album: function(id) {
+			for (var i = 0; i < this.album_musicbrainz.length; i++) {
+				if (this.album_musicbrainz[i].id == id) {
+					this.album_musicbrainz_match = this.album_musicbrainz[i];
+				}
+			}
+		},
+		change_track: function(id) {
+			for (var i = 0; i < this.songs.length; i++) {
+				if (this.songs[i].id == id) {
+					this.selected_track = this.songs[i];
+					this.track_musicbrainz = this.songs[i].extra_data.musicbrainz || [];
+				}
+			}
+		},
+		change_musicbrainz_match_track: function(id) {
+			for (var i = 0; i < this.track_musicbrainz.length; i++) {
+				if (this.track_musicbrainz[i].id == id) {
+					this.track_musicbrainz_match = this.track_musicbrainz[i];
+				}
+			}
+		},
+		test_change: function(e) {
+			console.log(e);
+		}
+	}
+}
+
 const Albums = {
 	template: `
 	<div>
@@ -926,6 +1115,7 @@ const router = new VueRouter({
 		{ path: '/', component: Index },
 		{ path: '/album/:id', component: Album, name: 'album', meta: {title: route => { return route.params.id + ' - Albums' }}},
 		{ path: '/album/:id/edit', component: AlbumEdit, name: 'album_edit', meta: {title: route => { return route.params.id + ' - Edit - Albums' }}},
+		{ path: '/album/:id/manage', component: AlbumManage, name: 'album_manage', meta: {title: route => { return route.params.id + ' - Manage - Albums' }}},
 		{ path: '/albums', component: Albums, name: 'albums', meta: {title: 'Albums' }},
 		{ path: '/songs', component: Songs, name: 'songs', meta: {title: 'Songs' }},
 		{ path: '/playlist/:id', component: Playlist, name: 'playlist', meta: {title: route => { return route.params.id + ' - Playlists' }}},

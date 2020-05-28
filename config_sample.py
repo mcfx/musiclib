@@ -21,4 +21,6 @@ PAGE_MAX = 1000000
 
 TASK_CLEAR_TIME = 7200 # 2 hours
 
+ACOUSTID_APIKEY = '' # get your own one on https://acoustid.org/
+
 DEBUG = True

@@ -182,6 +182,10 @@ def get_album_info(id):
 	res['songs'] = []
 	for i in songs:
 		res['songs'].append(song_schema.dump(i))
+		if request.values.get('extra_data') is not None:
+			res['songs'][-1]['extra_data'] = i.extra_data
+	if request.values.get('extra_data') is not None:
+		res['extra_data'] = album.extra_data
 	return jsonify({'status': True, 'data': res})
 
 @app.route('/api/album/<id>/update', methods=['POST'])
@@ -267,6 +271,20 @@ def album_gen_flac(id):
 	songs = Song.query.filter(Song.album_id == id).order_by(Song.track).all()
 	album.tracks = songs
 	add_file_task({'type': 'album_gen_flac', 'album_id': id}, album)
+	return jsonify({'status': True})
+
+@app.route('/api/album/<id>/match_acoustid', methods = ['POST'])
+@skip_error_and_auth
+def album_match_acoustid(id):
+	id = int(id)
+	album = Album.query.filter(Album.id == id).first()
+	if album is None:
+		return jsonify({'status': False})
+	if album.format != 'flac':
+		return jsonify({'status': False})
+	songs = Song.query.filter(Song.album_id == id).order_by(Song.track).all()
+	album.tracks = songs
+	add_file_task({'type': 'album_acoustid', 'album_id': id}, album)
 	return jsonify({'status': True})
 
 @app.route('/api/album/<id>/upload/<tp>', methods = ['POST'])

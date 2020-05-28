@@ -100,6 +100,14 @@ def get_content(hash):
 		return open(fn, 'rb').read()
 	return None
 
+def get_path(hash):
+	hash = purify_hash(hash)
+	fo = config.STORAGE_PATH + '/' + hash[:2]
+	fn = fo + '/' + hash[2:]
+	if os.path.exists(fn):
+		return fn
+	return None
+
 def sign(hash, expire):
 	return hashlib.md5(config.STORAGE_SALT + str(expire).encode() + binascii.unhexlify(hash) + config.STORAGE_SALT).hexdigest()
 
