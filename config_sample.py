@@ -23,4 +23,7 @@ TASK_CLEAR_TIME = 7200 # 2 hours
 
 ACOUSTID_APIKEY = '' # get your own one on https://acoustid.org/
 
+ARCUEDOTNET_COMMAND = [''] # path of ArCueDotNet.exe, maybe ['wine', 'path'] or ['mono', 'path'] (can be omitted if you don't want this feature)
+CONVERT_TO_WAV_BEFORE_VERIFY = False # if you use mono, set this to True
+
 DEBUG = True

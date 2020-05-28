@@ -43,8 +43,8 @@ function getFormatString(album) {
 }
 
 function getDurationString(x) {
-	if (x >= 3600) return parseInt(x / 3600).toString() + ':' + parseInt(x / 60) % 60 + ':' + x % 60;
-	return parseInt(x / 60) % 60 + ':' + x % 60;
+	if (x >= 3600) return parseInt(x / 3600).toString() + ':' + ('0' + parseInt(x / 60) % 60).substr(-2) + ':' + ('0' + x % 60).substr(-2);
+	return ('0' + parseInt(x / 60)).substr(-2) + ':' + ('0' + x % 60).substr(-2);
 }
 
 function download_song(item) {
@@ -273,6 +273,7 @@ const Album = {
 						<v-btn text small @click="gen_flac()" class="no-upper-case">Gen Flac</v-btn>
 						<span v-if="gen_flac_result.length">{{ gen_flac_result }}</span>
 					</span>
+					<v-btn text small @click="manage()" class="no-upper-case">Manage</v-btn>
 				</v-card-text>
 			</v-col>
 		</v-row>
@@ -380,11 +381,6 @@ const Album = {
 			return this.cover_files.length ? this.cover_files[0] : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAANSURBVBhXY/j//z8DAAj8Av6IXwbgAAAAAElFTkSuQmCC';
 		}
 	},
-	watch: {
-		id: function(new_id, old_id) {
-			this.init()
-		}
-	},
 	created: function() {
 		this.id = this.$route.params.id;
 		this.init();
@@ -402,6 +398,9 @@ const Album = {
 		},
 		edit: function() {
 			this.$router.push({ name: 'album_edit', params: { id: this.id } });
+		},
+		manage: function() {
+			this.$router.push({ name: 'album_manage', params: { id: this.id } });
 		},
 		upload: function(tp) {
 			var albumid = this.id;
@@ -480,11 +479,6 @@ const AlbumEdit = {
 			cover_files: [],
 			comments: '',
 			songs: []
-		}
-	},
-	watch: {
-		id: function(new_id, old_id) {
-			this.init()
 		}
 	},
 	created: function() {
@@ -611,10 +605,11 @@ const AlbumManage = {
 		<v-row>
 			<v-card-title> Verify CD with CUETools </v-card-title>
 			<v-card-text>
-				<v-btn class="no-upper-case" outlined>Start Verify</v-btn>
+				<v-btn class="no-upper-case" @click="cuetools_verify" outlined>Start Verify</v-btn>
+				<span v-if="cuetools_verify_result.length">{{ cuetools_verify_result }}</span>
 			</v-card-text>
 			<v-card-text>
-				<v-textarea value="111" style="font-size:10px" rows="25" label="CUETools Results" no-resize readonly outlined></v-textarea>
+				<v-textarea :value="extra_data.cuetools || ''" style="font-size:10px" rows="25" label="CUETools Results" no-resize readonly outlined></v-textarea>
 			</v-card-text>
 		</v-row>
 	</div>
@@ -643,15 +638,14 @@ const AlbumManage = {
 			track_musicbrainz_match: {},
 			musicbrainz_id: '',
 			set_musicbrainz_id_result: '',
-		}
-	},
-	watch: {
-		id: function(new_id, old_id) {
-			this.init()
+			cuetools_verify_result: '',
+			working: false,
 		}
 	},
 	created: function() {
 		this.id = this.$route.params.id;
+		this.working = true;
+		console.log('1')
 		this.init();
 	},
 	computed: {
@@ -659,18 +653,22 @@ const AlbumManage = {
 			return this.extra_data.musicbrainz || [];
 		}
 	},
+	destroyed: function() {
+		this.working = false
+	},
 	methods: {
 		init: function() {
 			axios.get('/api/album/' + this.id + '/info?extra_data').then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
 				document.title = this.title + ' - ' + this.artist + ' - Manage - Albums';
+				if (this.working) setTimeout(this.init, 2000);
 			})
 		},
 		set_musicbrainz_id: function() {
 			axios.post('/api/album/' + this.id + '/set_musicbrainz_id', {'mid': this.musicbrainz_id}).then(response => {
 				var _this = this;
-				this.set_musicbrainz_id_result = response.data.status ? 'Added to queue. Wait and then refresh the page.' : 'Error';
+				this.set_musicbrainz_id_result = response.data.status ? 'Added to queue.' : 'Error';
 				setTimeout(function() {
 					_this.set_musicbrainz_id_result = '';
 				}, 3000);
@@ -679,7 +677,7 @@ const AlbumManage = {
 		match_acoustid: function() {
 			axios.post('/api/album/' + this.id + '/match_acoustid').then(response => {
 				var _this = this;
-				this.match_acoustid_result = response.data.status ? 'Added to queue. Wait and then refresh the page.' : 'Error';
+				this.match_acoustid_result = response.data.status ? 'Added to queue.' : 'Error';
 				setTimeout(function() {
 					_this.match_acoustid_result = '';
 				}, 3000);
@@ -707,6 +705,15 @@ const AlbumManage = {
 					this.track_musicbrainz_match = this.track_musicbrainz[i];
 				}
 			}
+		},
+		cuetools_verify: function() {
+			axios.post('/api/album/' + this.id + '/cuetools_verify').then(response => {
+				var _this = this;
+				this.cuetools_verify_result = response.data.status ? 'Added to queue.' : 'Error';
+				setTimeout(function() {
+					_this.cuetools_verify_result = '';
+				}, 3000);
+			})
 		}
 	}
 }
