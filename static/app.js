@@ -552,6 +552,10 @@ const AlbumManage = {
 							</tr>
 						</tbody>
 					</v-simple-table>
+					<v-btn class="no-upper-case" @click="apply_musicbrainz_to_album" outlined>Apply Musicbrainz Match to Album</v-btn>
+					<span v-if="apply_musicbrainz_to_album_result.length">{{ apply_musicbrainz_to_album_result }}</span>
+					<v-btn class="no-upper-case" @click="apply_musicbrainz_cover_to_album" outlined>Add Cover from Cover Art Archive</v-btn>
+					<span v-if="apply_musicbrainz_cover_to_album_result.length">{{ apply_musicbrainz_cover_to_album_result }}</span>
 				</div>
 			</v-card-text>
 		</v-row>
@@ -581,7 +585,9 @@ const AlbumManage = {
 							ID: <a :href="'https://musicbrainz.org/recording/' + track_musicbrainz_match.id">{{ track_musicbrainz_match.id }}</a> <br>
 							Title: {{ track_musicbrainz_match.title }} <br>
 							Artist: {{ getMusicbrainzArtistName(track_musicbrainz_match['artist-credit']) }} <br>
-							Duration: {{ getDurationString(parseInt(track_musicbrainz_match.length / 1000)) }}
+							Duration: {{ getDurationString(parseInt(track_musicbrainz_match.length / 1000)) }} <br>
+							<v-btn class="no-upper-case" @click="apply_musicbrainz_to_song" outlined>Apply Musicbrainz Match to Track</v-btn>
+							<span v-if="apply_musicbrainz_to_song_result.length">{{ apply_musicbrainz_to_song_result }}</span>
 						</div>
 					</div>
 				</div>
@@ -639,6 +645,9 @@ const AlbumManage = {
 			musicbrainz_id: '',
 			set_musicbrainz_id_result: '',
 			cuetools_verify_result: '',
+			apply_musicbrainz_to_song_result: '',
+			apply_musicbrainz_to_album_result: '',
+			apply_musicbrainz_cover_to_album_result: '',
 			working: false,
 		}
 	},
@@ -712,6 +721,33 @@ const AlbumManage = {
 				this.cuetools_verify_result = response.data.status ? 'Added to queue.' : 'Error';
 				setTimeout(function() {
 					_this.cuetools_verify_result = '';
+				}, 3000);
+			})
+		},
+		apply_musicbrainz_cover_to_album: function() {
+			axios.post('/api/album/' + this.id + '/apply_musicbrainz_cover', {'mid': this.album_musicbrainz_match.id}).then(response => {
+				var _this = this;
+				this.apply_musicbrainz_cover_to_album_result = response.data.status ? 'Done' : 'Error';
+				setTimeout(function() {
+					_this.apply_musicbrainz_cover_to_album_result = '';
+				}, 3000);
+			})
+		},
+		apply_musicbrainz_to_album: function() {
+			axios.post('/api/album/' + this.id + '/apply_musicbrainz', {'mid': this.album_musicbrainz_match.id}).then(response => {
+				var _this = this;
+				this.apply_musicbrainz_to_album_result = response.data.status ? 'Done' : 'Error';
+				setTimeout(function() {
+					_this.apply_musicbrainz_to_album_result = '';
+				}, 3000);
+			})
+		},
+		apply_musicbrainz_to_song: function() {
+			axios.post('/api/song/' + this.selected_track.id + '/apply_musicbrainz', {'mid': this.track_musicbrainz_match.id}).then(response => {
+				var _this = this;
+				this.apply_musicbrainz_to_song_result = response.data.status ? 'Done' : 'Error';
+				setTimeout(function() {
+					_this.apply_musicbrainz_to_song_result = '';
 				}, 3000);
 			})
 		},

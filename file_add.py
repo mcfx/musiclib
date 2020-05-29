@@ -9,7 +9,7 @@ from file_process.album_init import get_album_info, get_album_images, get_album_
 from file_process.ffmpeg import probe
 from file_process.scans import get_converted_images
 from file_process.flac import gen_flac
-from file_process.musicbrainz import match_albums, mb_get_release
+from file_process.musicbrainz import match_albums, mb_get_release, mb_get_cover
 from file_process import cuetools
 from file_utils import get_ext, clear_cache
 import files
@@ -154,6 +154,16 @@ def cuetools_verify(album):
 		ids = None
 	res = cuetools.verify(paths, ids)
 	update_extra('albums', album.id, 'cuetools', res)
+
+def set_musicbrainz_cover(id, mid):
+	cover = mb_get_cover(mid)
+	if cover is None:
+		return False, 'Cover not found on coverartarchive.org'
+	fn = files.add_bytes(cover, 'jpg')
+	oc = db.select_first("select cover_files from albums where id = %(id)s", {'id': id})[0]
+	nc = (oc + ',' + fn).strip(',')
+	db.execute("update albums set cover_files = %(cf)s where id = %(id)s", {'id': id, 'cf': nc})
+	return True, None
 
 ft_lock = RLock()
 ft_queue = []
@@ -313,6 +323,12 @@ def file_process_thread():
 				cuetools_verify(task_ext)
 				ft_lock.acquire()
 				ft_done.append({'task': task, 'result': {'status': True}, 'done_time': int(time.time())})
+				ft_lock.release()
+			elif task['type'] == 'album_musicbrainz_cover':
+				res, err = set_musicbrainz_cover(task['album_id'], task['mid'])
+				res = {'status': True} if res else {'status': False, 'error': err}
+				ft_lock.acquire()
+				ft_done.append({'task': task, 'result': res, 'done_time': int(time.time())})
 				ft_lock.release()
 		except:
 			err = traceback.format_exc()

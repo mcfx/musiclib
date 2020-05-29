@@ -20,7 +20,7 @@ db = SQLAlchemy(app)
 
 with app.app_context():
 	from file_utils import get_ext, purify_filename
-	from file_process import auto_decode
+	from file_process import auto_decode, musicbrainz
 	from file_add import add_file_task, get_file_queue, start_process_thread
 	from flask_wrappers import skip_error_and_auth
 	import files
@@ -280,8 +280,6 @@ def album_match_acoustid(id):
 	album = Album.query.filter(Album.id == id).first()
 	if album is None:
 		return jsonify({'status': False})
-	if album.format != 'flac':
-		return jsonify({'status': False})
 	songs = Song.query.filter(Song.album_id == id).order_by(Song.track).all()
 	album.tracks = songs
 	add_file_task({'type': 'album_acoustid', 'album_id': id}, album)
@@ -293,8 +291,6 @@ def album_set_musicbrainz_id(id):
 	id = int(id)
 	album = Album.query.filter(Album.id == id).first()
 	if album is None:
-		return jsonify({'status': False})
-	if album.format != 'flac':
 		return jsonify({'status': False})
 	mid = request.json['mid']
 	add_file_task({'type': 'album_musicbrainz_id', 'album_id': id, 'mid': mid})
@@ -312,6 +308,43 @@ def album_cuetools_verify(id):
 	songs = Song.query.filter(Song.album_id == id).order_by(Song.track).all()
 	album.tracks = songs
 	add_file_task({'type': 'album_cuetools', 'album_id': id}, album)
+	return jsonify({'status': True})
+
+@app.route('/api/album/<id>/apply_musicbrainz', methods = ['POST'])
+@skip_error_and_auth
+def apply_musicbrainz_to_album(id):
+	id = int(id)
+	album = Album.query.filter(Album.id == id).first()
+	if album is None:
+		return jsonify({'status': False})
+	mid = request.json['mid']
+	mc = None
+	for mc_ in album.extra_data['musicbrainz']:
+		if mc_['id'] == mid:
+			mc = mc_
+			break
+	if mc is None:
+		return jsonify({'status': False})
+	album.title = mc['title']
+	album.release_date = mc['date']
+	album.artist = musicbrainz.get_artist_name(mc['artist-credit'])
+	songs = Song.query.filter(Song.album_id == id).order_by(Song.track).all()
+	mt = mc['media'][0]['tracks']
+	for i in range(min(len(songs), len(mt))):
+		songs[i].title = mt[i]['title']
+		songs[i].artist = musicbrainz.get_artist_name(mt[i]['artist-credit'])
+	db.session.commit()
+	return jsonify({'status': True})
+
+@app.route('/api/album/<id>/apply_musicbrainz_cover', methods = ['POST'])
+@skip_error_and_auth
+def apply_musicbrainz_cover_to_album(id):
+	id = int(id)
+	album = Album.query.filter(Album.id == id).first()
+	if album is None:
+		return jsonify({'status': False})
+	mid = request.json['mid']
+	add_file_task({'type': 'album_musicbrainz_cover', 'album_id': id, 'mid': mid})
 	return jsonify({'status': True})
 
 @app.route('/api/album/<id>/upload/<tp>', methods = ['POST'])
@@ -386,6 +419,22 @@ def get_song_link(id):
 		mfn = song.__dict__[key]
 		data[key] = files.get_link(mfn, fn + '.' + get_ext(mfn, ''), 86400) if mfn else ''
 	return jsonify({'status': True, 'data': data})
+
+@app.route('/api/song/<id>/apply_musicbrainz', methods = ['POST'])
+@skip_error_and_auth
+def apply_musicbrainz_to_song(id):
+	id = int(id)
+	song = Song.query.filter(Song.id == id).first()
+	if song is None:
+		return jsonify({'status': False})
+	mid = request.json['mid']
+	for mc in song.extra_data['musicbrainz']:
+		if mc['id'] == mid:
+			song.title = mc['title']
+			song.artist = musicbrainz.get_artist_name(mc['artist-credit'])
+			db.session.commit()
+			return jsonify({'status': True})
+	return jsonify({'status': False})
 
 @app.route('/api/songs/<ids>/play')
 @skip_error_and_auth
