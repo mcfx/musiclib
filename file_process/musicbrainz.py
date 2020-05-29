@@ -13,6 +13,8 @@ def mb_get(path, params):
 	last_api_call = tm
 	res = requests.get(MB_API_BASE + path, params = params).json()
 	if 'error' in res:
+		if res['error'] == 'Not Found':
+			return None
 		raise Exception('Error: ' + res['error'])
 	return res
 
@@ -23,7 +25,6 @@ def mb_get_recording(id):
 	return mb_get('recording/' + id, {'inc': 'artist-credits releases', 'fmt': 'json'})
 
 def match_albums(files):
-	print(files)
 	res = []
 	rel_all = None
 	for f in files:
@@ -34,7 +35,9 @@ def match_albums(files):
 			if 'recordings' in i:
 				for j in i['recordings']:
 					if 'id' in j:
-						cur.append(mb_get_recording(j['id']))
+						tmp = mb_get_recording(j['id'])
+						if tmp is not None:
+							cur.append(tmp)
 		for i in cur:
 			for j in i['releases']:
 				cur_rels.add(j['id'])
@@ -45,5 +48,7 @@ def match_albums(files):
 			rel_all &= cur_rels
 	resa = []
 	for i in rel_all:
-		resa.append(mb_get_release(i))
+		tmp = mb_get_release(i)
+		if tmp is not None:
+			resa.append(tmp)
 	return resa, res
