@@ -523,16 +523,16 @@ const AlbumManage = {
 			<v-card-text v-else>
 				<v-select :items="album_musicbrainz" item-value="id" @change="change_musicbrainz_match_album" label="Select match">
 					<template v-slot:selection="data">
-						{{ data.item['artist-credit'][0].artist.name + ' - ' + data.item.title + ' (' + data.item.id + ')' }}
+						{{ getMusicbrainzArtistName(data.item['artist-credit']) + ' - ' + data.item.title + ' (' + data.item.id + ')' }}
 					</template>
 					<template v-slot:item="data">
-						{{ data.item['artist-credit'][0].artist.name + ' - ' + data.item.title + ' (' + data.item.id + ')' }}
+						{{ getMusicbrainzArtistName(data.item['artist-credit']) + ' - ' + data.item.title + ' (' + data.item.id + ')' }}
 					</template>
 				</v-select>
 				<div v-if="typeof(album_musicbrainz_match.id) != 'undefined'">
 					ID: <a :href="'https://musicbrainz.org/release/' + album_musicbrainz_match.id">{{ album_musicbrainz_match.id }}</a> <br>
 					Title: {{ album_musicbrainz_match.title }} <br>
-					Artist: {{ album_musicbrainz_match['artist-credit'][0].artist.name }} <br>
+					Artist: {{ getMusicbrainzArtistName(album_musicbrainz_match['artist-credit']) }} <br>
 					Release date: {{ album_musicbrainz_match.date }}
 					<v-simple-table>
 						<thead>
@@ -548,7 +548,7 @@ const AlbumManage = {
 								<td>{{ item.number }}</td>
 								<td>{{ item.title }}</td>
 								<td>{{ getDurationString(parseInt(item.length / 1000)) }}</td>
-								<td>{{ item['artist-credit'][0].artist.name }}</td>
+								<td>{{ getMusicbrainzArtistName(item['artist-credit']) }}</td>
 							</tr>
 						</tbody>
 					</v-simple-table>
@@ -571,16 +571,16 @@ const AlbumManage = {
 					<div v-else>
 						<v-select :items="track_musicbrainz" item-value="id" @change="change_musicbrainz_match_track" label="Select match">
 							<template v-slot:selection="data">
-								{{ data.item['artist-credit'][0].artist.name + ' - ' + data.item.title + ' (' + data.item.id + ')' }}
+								{{ getMusicbrainzArtistName(data.item['artist-credit']) + ' - ' + data.item.title + ' (' + data.item.id + ')' }}
 							</template>
 							<template v-slot:item="data">
-								{{ data.item['artist-credit'][0].artist.name + ' - ' + data.item.title + ' (' + data.item.id + ')' }}
+								{{ getMusicbrainzArtistName(data.item['artist-credit']) + ' - ' + data.item.title + ' (' + data.item.id + ')' }}
 							</template>
 						</v-select>
 						<div v-if="typeof(track_musicbrainz_match.id) != 'undefined'">
 							ID: <a :href="'https://musicbrainz.org/recording/' + track_musicbrainz_match.id">{{ track_musicbrainz_match.id }}</a> <br>
 							Title: {{ track_musicbrainz_match.title }} <br>
-							Artist: {{ track_musicbrainz_match['artist-credit'][0].artist.name }} <br>
+							Artist: {{ getMusicbrainzArtistName(track_musicbrainz_match['artist-credit']) }} <br>
 							Duration: {{ getDurationString(parseInt(track_musicbrainz_match.length / 1000)) }}
 						</div>
 					</div>
@@ -714,6 +714,9 @@ const AlbumManage = {
 					_this.cuetools_verify_result = '';
 				}, 3000);
 			})
+		},
+		getMusicbrainzArtistName: function(s) {
+			return s.map(x => x.name + x.joinphrase).join('')
 		}
 	}
 }
