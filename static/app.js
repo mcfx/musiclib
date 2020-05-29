@@ -727,7 +727,7 @@ const AlbumManage = {
 		apply_musicbrainz_cover_to_album: function() {
 			axios.post('/api/album/' + this.id + '/apply_musicbrainz_cover', {'mid': this.album_musicbrainz_match.id}).then(response => {
 				var _this = this;
-				this.apply_musicbrainz_cover_to_album_result = response.data.status ? 'Done' : 'Error';
+				this.apply_musicbrainz_cover_to_album_result = response.data.status ? 'Added to queue.' : 'Error';
 				setTimeout(function() {
 					_this.apply_musicbrainz_cover_to_album_result = '';
 				}, 3000);
