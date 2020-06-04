@@ -269,6 +269,7 @@ def file_process_thread():
 					log_new = files.add_file(path)
 					log_files = (log_files + ',' + log_new).strip(',')
 					db.execute("update albums set log_files = %(lf)s where id = %(id)s", {'id': task['album_id'], 'lf': log_files})
+					task_result = {'status': True}
 				elif task['type'] == 'album_scan':
 					res, err, depath = try_decompress(path)
 					if res == False:
