@@ -514,6 +514,24 @@ def update_scan_name(id):
 	db.session.commit()
 	return jsonify({'status': True})
 
+@app.route('/api/scan/<id>/del', methods = ['POST'])
+@skip_error_and_auth
+def scan_del(id):
+	id = int(id)
+	fs = []
+	scan = Scan.query.filter(Scan.id == id).first()
+	if scan is None:
+		return jsonify({'status': False})
+	t = json.loads(scan.files)
+	for x, y, z in t:
+		fs.append(y)
+		fs.append(z)
+	db.session.delete(scan)
+	for f in fs:
+		files.del_file(f, False)
+	db.session.commit()
+	return jsonify({'status': True})
+
 @app.route('/api/log/<id>')
 @skip_error_and_auth
 def get_log(id):

@@ -64,6 +64,7 @@ Vue.component('text-edit', {
 	<span style="width:100%">
 		<v-text-field v-model="text" v-if="editing" @blur="stop_edit" @input="debouncedPush()"></v-text-field>
 		<span v-else> {{ text }} <v-btn text icon small><v-icon @click="start_edit">mdi-pencil</v-icon></v-btn></span>
+		<slot></slot>
 	</span>
 	`,
 	props: ['text', 'pushurl', 'pushkey'],
@@ -121,7 +122,11 @@ Vue.component('log-file', {
 Vue.component('scans', {
 	template: `
 	<div>
-		<v-card-title><text-edit :text="scan.packname" :pushurl="'/api/scan/' + scan.id + '/update_name'" pushkey="name"></text-edit></v-card-title>
+		<v-card-title>
+			<text-edit :text="scan.packname" :pushurl="'/api/scan/' + scan.id + '/update_name'" pushkey="name">
+				<v-btn text icon small @click="$refs.delete_confirm.start('scan', scan.id, scan.packname)"><v-icon>mdi-delete</v-icon></v-btn>
+			</text-edit>
+		</v-card-title>
 		<v-card-text>
 			<div v-viewer="{url: 'data-src'}">
 				<v-row>
@@ -134,6 +139,7 @@ Vue.component('scans', {
 				</v-row>
 			</div>
 		</v-card-text>
+		<delete-confirm ref="delete_confirm"></delete-confirm>
 	</div>
 	`,
 	props: ['scan']
@@ -200,7 +206,7 @@ Vue.component('file-upload', {
 
 Vue.component('add-playlist', {
 	template: `
-	<div data-app>
+	<div>
 		<v-dialog v-model="show" max-width="500" scrollable>
 			<v-card style="min-height:600px">
 				<v-card-title>Choose target playlist</v-card-title>
@@ -256,7 +262,7 @@ Vue.component('add-playlist', {
 
 Vue.component('delete-confirm', {
 	template: `
-	<div data-app>
+	<div>
 		<v-dialog v-model="show" max-width="300">
 			<v-card>
 				<v-card-title>Delete confirmation</v-card-title>
@@ -557,7 +563,7 @@ const AlbumEdit = {
 
 const AlbumManage = {
 	template: `
-	<div data-app>
+	<div>
 		<v-row>
 			<v-card-title><h3> Manage: {{ title }} </h3></v-card-title>
 		</v-row>
