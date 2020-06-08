@@ -267,7 +267,7 @@ Vue.component('delete-confirm', {
 		<v-dialog v-model="show" max-width="300">
 			<v-card>
 				<v-card-title>Delete confirmation</v-card-title>
-				<v-card-text>Are you sure to delete {{ name }} ? This operation is irreversible.</v-card-text>
+				<v-card-text>Are you sure to delete {{ name }}? This operation is irreversible.</v-card-text>
 				<v-card-actions>
 					<v-spacer></v-spacer>
 					<v-btn color="red" text @click="del()" class="no-upper-case">Delete</v-btn>
@@ -926,7 +926,11 @@ const Playlist = {
 	template: `
 	<div>
 		<v-row>
-			<v-card-title> {{ title }} &nbsp; <v-btn text icon small><v-icon @click="edit">mdi-pencil</v-icon></v-btn></v-card-title>
+			<v-card-title>
+				{{ title }} &nbsp;
+				<v-btn text icon small><v-icon @click="edit">mdi-pencil</v-icon></v-btn>
+				<v-btn text icon small @click="$refs.delete_confirm.start('playlist', id, title)"><v-icon>mdi-delete</v-icon></v-btn>
+			</v-card-title>
 			<v-card-text> {{ description }} </v-card-text>
 		</v-row>
 		<v-simple-table>
@@ -961,6 +965,7 @@ const Playlist = {
 			<v-pagination v-model="cur_page" :length="Math.ceil(count_tracks / results_per_page)" @input="init"></v-pagination>
 		</div>
 		<add-playlist ref="add_playlist"></add-playlist>
+		<delete-confirm ref="delete_confirm"></delete-confirm>
 	</div>
 	`,
 	data: function() {

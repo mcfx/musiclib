@@ -656,6 +656,17 @@ def update_playlist_info(id):
 	db.session.commit()
 	return jsonify({'status': True})
 
+@app.route('/api/playlist/<id>/del', methods = ['POST'])
+@skip_error_and_auth
+def playlist_del(id):
+	id = int(id)
+	playlist = Playlist.query.filter(Playlist.id == id).first()
+	if playlist is None:
+		return jsonify({'status': False})
+	db.session.delete(playlist)
+	db.session.commit()
+	return jsonify({'status': True})
+
 @app.route('/api/playlist/create', methods = ['POST'])
 @skip_error_and_auth
 def create_playlist():
