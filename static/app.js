@@ -125,7 +125,7 @@ Vue.component('scans', {
 	<div>
 		<v-card-title>
 			<text-edit :text="scan.packname" :pushurl="'/api/scan/' + scan.id + '/update_name'" pushkey="name">
-				<v-btn text icon small @click="$refs.delete_confirm.start('scan', scan.id, scan.packname)"><v-icon>mdi-delete</v-icon></v-btn>
+				<v-btn text icon small @click="del"><v-icon>mdi-delete</v-icon></v-btn>
 			</text-edit>
 		</v-card-title>
 		<v-card-text>
@@ -143,7 +143,13 @@ Vue.component('scans', {
 		<delete-confirm ref="delete_confirm"></delete-confirm>
 	</div>
 	`,
-	props: ['scan']
+	props: ['scan'],
+	methods: {
+		del: function() {
+			var album = this.$parent.$parent.$parent.$parent;
+			this.$refs.delete_confirm.start('scan', this.scan.id, this.scan.packname, 0, album.init.bind(album))
+		}
+	}
 })
 
 Vue.component('file-links', {
@@ -283,17 +289,27 @@ Vue.component('delete-confirm', {
 			type: '',
 			id: 0,
 			name: '',
+			callbackurl: 0,
+			callback: 0,
 		}
 	},
 	methods: {
-		start: function(type, id, name) {
+		start: function(type, id, name, callbackurl = 0, callback = 0) {
 			this.type = type;
 			this.id = id;
 			this.name = name;
+			this.callbackurl = callbackurl;
+			this.callback = callback;
 			this.show = true;
 		},
 		del: function() {
-			axios.post('/api/' + this.type + '/' + this.id + '/del');
+			axios.post('/api/' + this.type + '/' + this.id + '/del').then(response => {
+				if (typeof(this.callbackurl) == 'object') {
+					this.$router.push(this.callbackurl)
+				} else if (typeof(this.callback) == 'function') {
+					this.callback()
+				}
+			});
 			this.hide();
 		},
 		hide: function() {
@@ -323,7 +339,7 @@ const Album = {
 						<span v-if="gen_flac_result.length">{{ gen_flac_result }}</span>
 					</span>
 					<v-btn text small @click="manage()" class="no-upper-case">Manage</v-btn>
-					<v-btn text small @click="$refs.delete_confirm.start('album', id, title)" class="no-upper-case">Delete</v-btn>
+					<v-btn text small @click="$refs.delete_confirm.start('album', id, title, {name: 'albums'})" class="no-upper-case">Delete</v-btn>
 				</v-card-text>
 			</v-col>
 		</v-row>
@@ -374,7 +390,7 @@ const Album = {
 				</v-card-text>
 				<context-menu id="context-menu" ref="cover_menu" class="no-padding-left">
 					<li class="ctx-header">{{ current_cover_name }}</li>
-					<li class="ctx-item" @click="$refs.delete_confirm.start('album/' + id + '/cover', current_cover_name, current_cover_name)">Delete</li>
+					<li class="ctx-item" @click="$refs.delete_confirm.start('album/' + id + '/cover', current_cover_name, current_cover_name, 0, init.bind(this))">Delete</li>
 				</context-menu>
 			</v-tab-item>
 			<v-tab-item>
@@ -929,7 +945,7 @@ const Playlist = {
 			<v-card-title>
 				{{ title }} &nbsp;
 				<v-btn text icon small><v-icon @click="edit">mdi-pencil</v-icon></v-btn>
-				<v-btn text icon small @click="$refs.delete_confirm.start('playlist', id, title)"><v-icon>mdi-delete</v-icon></v-btn>
+				<v-btn text icon small @click="$refs.delete_confirm.start('playlist', id, title, {name: 'playlists'})"><v-icon>mdi-delete</v-icon></v-btn>
 			</v-card-title>
 			<v-card-text> {{ description }} </v-card-text>
 		</v-row>
