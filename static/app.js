@@ -254,6 +254,48 @@ Vue.component('add-playlist', {
 	}
 })
 
+Vue.component('delete-confirm', {
+	template: `
+	<div data-app>
+		<v-dialog v-model="show" max-width="300">
+			<v-card>
+				<v-card-title>Delete confirmation</v-card-title>
+				<v-card-text>Are you sure to delete {{ name }} ? This operation is irreversible.</v-card-text>
+				<v-card-actions>
+					<v-spacer></v-spacer>
+					<v-btn color="red" text @click="del()" class="no-upper-case">Delete</v-btn>
+					<v-btn color="green" text @click="hide()" class="no-upper-case">Cancel</v-btn>
+				</v-card-actions>
+			</v-card>
+		</v-dialog>
+	</div>
+	`,
+	data: function() {
+		return {
+			show: false,
+			type: '',
+			id: 0,
+			name: '',
+		}
+	},
+	methods: {
+		start: function(type, id, name) {
+			this.type = type;
+			this.id = id;
+			this.name = name;
+			this.show = true;
+		},
+		del: function() {
+			axios.post('/api/' + this.type + '/' + this.id + '/del');
+			this.hide();
+		},
+		hide: function() {
+			this.show = false;
+			this.id = 0;
+		}
+	}
+})
+
 const Album = {
 	template: `
 	<div>
@@ -274,6 +316,7 @@ const Album = {
 						<span v-if="gen_flac_result.length">{{ gen_flac_result }}</span>
 					</span>
 					<v-btn text small @click="manage()" class="no-upper-case">Manage</v-btn>
+					<v-btn text small @click="$refs.delete_confirm.start('album', id, title)" class="no-upper-case">Delete</v-btn>
 				</v-card-text>
 			</v-col>
 		</v-row>
@@ -354,6 +397,7 @@ const Album = {
 			</v-tab-item>
 		</v-tabs>
 		<add-playlist ref="add_playlist"></add-playlist>
+		<delete-confirm ref="delete_confirm"></delete-confirm>
 	</div>
 	`,
 	data: function() {

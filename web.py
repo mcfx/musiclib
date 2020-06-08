@@ -370,6 +370,35 @@ def album_upload_files(id, tp):
 	add_file_task({'type': 'album_' + tp, 'album_id': id, 'path': fp, 'filename': ofn})
 	return jsonify({'status': True, 'msg': 'Added to queue'})
 
+@app.route('/api/album/<id>/del', methods = ['POST'])
+@skip_error_and_auth
+def album_del(id):
+	id = int(id)
+	album = Album.query.filter(Album.id == id).first()
+	if album is None:
+		return jsonify({'status': False})
+	fs = album.log_files + album.cover_files
+	songs = Song.query.filter(Song.album_id == id).order_by(Song.track).all()
+	for song in songs:
+		fs.append(song.file)
+		fs.append(song.file_flac)
+		db.session.delete(song)
+	album_files = AlbumFile.query.filter(AlbumFile.album_id == id).all()
+	for file in album_files:
+		db.session.delete(file)
+	scans = Scan.query.filter(Scan.album_id == id).all()
+	for scan in scans:
+		t = json.loads(scan.files)
+		for x, y, z in t:
+			fs.append(y)
+			fs.append(z)
+		db.session.delete(scan)
+	db.session.delete(album)
+	for f in fs:
+		files.del_file(f, False)
+	db.session.commit()
+	return jsonify({'status': True})
+
 @app.route('/api/album/upload', methods = ['POST'])
 @skip_error_and_auth
 def album_upload():
@@ -529,7 +558,7 @@ def get_playlist_info(id, page = -1):
 	for i in sp:
 		song = Song.query.filter(Song.id == i).first()
 		if song is None:
-			return jsonify({'status': False})
+			continue
 		album = Album.query.filter(Album.id == song.album_id).one()
 		song = song_schema.dump(song)
 		song['album_title'] = album.title
@@ -556,6 +585,8 @@ def playlist_addtrack(id):
 		return jsonify({'status': False})
 	sid = s['song_id']
 	if Song.query.filter(Song.id == sid).first() is None:
+		return jsonify({'status': False})
+	if sid in playlist.tracklist:
 		return jsonify({'status': False})
 	playlist.tracklist = playlist.tracklist + [sid]
 	playlist.last_update = int(time.time())

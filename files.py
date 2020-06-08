@@ -70,11 +70,16 @@ def add_file(tmp_path):
 		db_lock.release()
 	return hexhs + '.' + get_ext(tmp_path, '')
 
-def del_file(hash):
+def del_file(hash, throw = True):
 	hash = purify_hash(hash)
 	sha512 = binascii.unhexlify(hash)
 	db_lock.acquire()
-	file = File.query.filter(File.sha512 == sha512).one()
+	file = File.query.filter(File.sha512 == sha512).first()
+	if file is None:
+		db_lock.release()
+		if throw:
+			raise Exception('File not found in del_file')
+		return
 	file.count -= 1
 	if file.count == 0:
 		fo = config.STORAGE_PATH + '/' + hash[:2]
