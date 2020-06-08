@@ -56,6 +56,7 @@ function download_song(item) {
 const opts = { dark: false };
 Vue.use(Vuetify);
 Vue.use(VueViewer.default);
+Vue.use(VueContextMenu);
 
 const Index = { template: '<div>test index</div>' }
 
@@ -362,7 +363,7 @@ const Album = {
 						<draggable v-model="cover_files" group="cover-files" tag="v-row" @end="update_covers">
 							<v-col cols="2" v-for="item in cover_files">
 								<v-card flat>
-									<img :src="item" style="width:100%" :key="'cover' + item"></img>
+									<img :src="item" style="width:100%" @contextmenu.prevent="current_cover_name = item.substr(6, 10) + '.jpg'; $refs.cover_menu.open()" :key="'cover' + item"></img>
 								</v-card>
 							</v-col>
 						</v-row>
@@ -371,6 +372,10 @@ const Album = {
 				<v-card-text v-else>
 					There are no covers for this album now.
 				</v-card-text>
+				<context-menu id="context-menu" ref="cover_menu" class="no-padding-left">
+					<li class="ctx-header">{{ current_cover_name }}</li>
+					<li class="ctx-item" @click="$refs.delete_confirm.start('album/' + id + '/cover', current_cover_name, current_cover_name)">Delete</li>
+				</context-menu>
 			</v-tab-item>
 			<v-tab-item>
 				<v-card-text v-if="scans.length">
@@ -424,6 +429,7 @@ const Album = {
 			songs: [],
 			scans: [],
 			gen_flac_result: '',
+			current_cover_name: '',
 		}
 	},
 	computed: {

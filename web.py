@@ -416,6 +416,27 @@ def album_upload():
 	add_file_task({'type': 'new_album', 'path': fp, 'filename': ofn})
 	return jsonify({'status': True, 'msg': 'Added to queue'})
 
+@app.route('/api/album/<id>/cover/<cn>/del', methods = ['POST'])
+@skip_error_and_auth
+def album_del_cover(id, cn):
+	id = int(id)
+	fs = []
+	album = Album.query.filter(Album.id == id).first()
+	if album is None:
+		return jsonify({'status': False})
+	nc = []
+	for c in album.cover_files:
+		if c[:10] == cn[:10]:
+			fs.append(c)
+		else:
+			nc.append(c)
+	album.cover_files = nc
+	db.session.commit()
+	for f in fs:
+		files.del_file(f, False)
+	db.session.commit()
+	return jsonify({'status': True})
+
 @app.route('/api/song/search')
 @skip_error_and_auth
 def search_song():
