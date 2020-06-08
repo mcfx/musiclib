@@ -151,6 +151,10 @@ def send_index():
 		return open('static/index.html').read().replace('app.js', 'app.js?' + str(random.random())).replace('app.css', 'app.css?' + str(random.random())).replace('config.js', 'config.js?' + str(random.random()))
 	return app.send_static_file('index.html') # should be handled by nginx
 
+@app.route('/config.js')
+def get_config():
+	return 'const vuerouter_history_mode = %s\nconst results_per_page = %d' % (str(config.VUEROUTER_HISTORY_MODE).lower(), config.RESULTS_PER_PAGE)
+
 @app.route('/api/album/search')
 @skip_error_and_auth
 def search_album():
