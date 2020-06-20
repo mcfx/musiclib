@@ -1219,10 +1219,10 @@ const Manage = {
 		this.working = false
 	},
 	methods: {
-		init: function() {
+		init: function(setnxt = true) {
 			axios.get('/api/queue').then(response => {
 				this.queue = response.data;
-				if (this.working) setTimeout(this.init, 2000);
+				if (this.working && setnxt) setTimeout(this.init, 2000);
 			})
 		},
 		upload_album: function(file, callback) {
@@ -1231,7 +1231,7 @@ const Manage = {
 			formData.append('file', file);
 			axios.post('/api/album/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}}).then(response => {
 				callback(response.data);
-				_this.init();
+				_this.init(false);
 			})
 		},
 		create_playlist: function() {
