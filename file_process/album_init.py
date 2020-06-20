@@ -4,6 +4,7 @@ from . import ffmpeg
 from . import cuereader
 from . import shntool
 from . import auto_decode
+from .utils import get_ext
 
 AUDIO_EXTS = ['wav', 'flac', 'alac', 'm4a', 'mp3', 'tak', 'tta', 'ape']
 
@@ -255,7 +256,7 @@ def convert_album_to_flac(album, fo, dstfo):
 		else:
 			f = None
 			for fu in os.listdir(fo):
-				if remove_ext(fu) == remove_ext(fr): # fix for weird cue that filename is xxx.wav but not the real one
+				if remove_ext(fu) == remove_ext(fr) and get_ext(fu) in AUDIO_EXTS: # fix for weird cue that filename is xxx.wav but not the real one
 					f = fu
 					break
 		if file_format[fr] == 'flac' and len(fp) == 1 and fp[0][1] == 0 and fp[0][2] == INF:
