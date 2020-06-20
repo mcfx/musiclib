@@ -331,22 +331,32 @@ def file_process_thread():
 				ft_lock.acquire()
 				ft_done.append({'task': task, 'result': res, 'done_time': int(time.time())})
 				ft_lock.release()
+			for i in tmp_folders:
+				clear_cache(i, True)
 		except:
 			err = traceback.format_exc()
 			ft_lock.acquire()
 			ft_done.append({'task': task, 'result': {'status': False, 'error': err}, 'done_time': int(time.time())})
 			ft_lock.release()
+			for i in tmp_folders:
+				clear_cache(i, True)
 
 def start_process_thread(app):
+	global tmp_folders
+	tmp_folders = []
 	def run():
 		with app.app_context():
 			file_process_thread()
 	fo = config.TEMP_PATH
 	if fo[-1] != '/':
 		fo += '/'
-	def md(s):
+	def md(s, add_autorem = True):
+		global tmp_folders
 		if not os.path.exists(fo + s):
 			os.mkdir(fo + s)
+		if add_autorem:
+			tmp_folders.append(fo + s)
+	md('', False)
 	md('album_init')
 	md('decompress')
 	md('gen_flac')
