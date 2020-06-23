@@ -42,6 +42,11 @@ function getFormatString(album) {
 	return album.format + ', ' + tmp;
 }
 
+function getSourceString(album) {
+	if (album.source && album.file_source) return album.source + ', ' + album.file_source;
+	return album.source || album.file_source;
+}
+
 function getDurationString(x) {
 	if (x >= 3600) return parseInt(x / 3600).toString() + ':' + ('0' + parseInt(x / 60) % 60).substr(-2) + ':' + ('0' + x % 60).substr(-2);
 	return ('0' + parseInt(x / 60)).substr(-2) + ':' + ('0' + x % 60).substr(-2);
@@ -361,12 +366,12 @@ const Album = {
 			<v-col sm="8">
 				<v-card-title> {{ title }} </v-card-title>
 				<v-card-text>
-					Artist: {{ artist }} <br>
-					Release date: {{ release_date || 'Unknown' }} <br>
-					Format: {{ getFormatString(this) }} <br>
-					Source: {{ source && file_source ? source + ', ' + file_source : source || file_source || 'Unknown' }} <br>
+					<div v-if="artist"> Artist: {{ artist }} </div>
+					<div v-if="release_date"> Release date: {{ release_date }} </div>
+					<div v-if="getFormatString(this)"> Format: {{ getFormatString(this) }} </div>
+					<div v-if="getSourceString(this)"> Source: {{ getSourceString(this) }} </div>
 					Trusted: {{ trusted ? 'yes' : 'no' }} <br>
-					Comments: {{ comments }} <br>
+					<div v-if="comments"> Comments: {{ comments }} </div>
 					<v-btn text small @click="edit()" class="no-upper-case">Edit</v-btn>
 					<span v-if="format == 'flac'">
 						<v-btn text small @click="gen_flac()" class="no-upper-case">Gen Flac</v-btn>
