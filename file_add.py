@@ -44,7 +44,6 @@ def album_init(fo):
 		if dstfo[-1] != '/':
 			dstfo += '/'
 		dstfo += '/album_init/'
-		clear_cache(dstfo)
 		convert_album_to_flac(album, fo, dstfo)
 		for trackid in range(len(album['tracks'])):
 			track = album['tracks'][trackid]
@@ -87,7 +86,6 @@ def add_scans(fo, packname, album_id):
 	if dstfo[-1] != '/':
 		dstfo += '/'
 	dstfo += '/scans/'
-	clear_cache(dstfo)
 	imgs = get_converted_images(fo, dstfo)
 	img_files = []
 	for fn, src, thb in imgs:
@@ -103,7 +101,6 @@ def gen_final_flac(album):
 	if dstfo[-1] != '/':
 		dstfo += '/'
 	dstfo += '/gen_flac/'
-	clear_cache(dstfo)
 	_files = []
 	for i in range(len(album.tracks)):
 		track = album.tracks[i]
@@ -218,12 +215,10 @@ def try_decompress(archive_path):
 	if depath[-1] != '/':
 		depath += '/'
 	depath += 'decompress'
-	clear_cache(depath, True)
 	res, err = decompress(archive_path, depath, '') # None pw causes infinite running
 	if res: return True, err, detect_path(depath)
 	pw = guess_pw(archive_path)
 	if pw is None: return res, err, ''
-	clear_cache(depath, True)
 	res2, err2 = decompress(archive_path, depath, pw)
 	if res2: return True, err2, detect_path(depath)
 	return res, err, ''

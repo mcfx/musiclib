@@ -11,7 +11,6 @@ def verify(files, trackids):
 	if path[-1] != '/':
 		path += '/'
 	path += 'verify/'
-	utils.clear_cache(path)
 	tmp_files = []
 	if trackids is None:
 		if config.CONVERT_TO_WAV_BEFORE_VERIFY:
