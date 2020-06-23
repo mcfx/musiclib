@@ -10,8 +10,8 @@ from file_process.ffmpeg import probe
 from file_process.scans import get_converted_images
 from file_process.flac import gen_flac
 from file_process.musicbrainz import match_albums, mb_get_release, mb_get_cover
+from file_process.utils import get_ext, clear_cache
 from file_process import cuetools
-from file_utils import get_ext, clear_cache
 import files
 import db
 import config

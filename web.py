@@ -19,7 +19,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
 with app.app_context():
-	from file_utils import get_ext, purify_filename
+	from file_process.utils import get_ext, purify_filename
 	from file_process import auto_decode, musicbrainz
 	from file_add import add_file_task, get_file_queue, start_process_thread
 	from flask_wrappers import skip_error_and_auth

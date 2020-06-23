@@ -5,7 +5,7 @@ from flask import Flask, request, current_app, send_from_directory
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 
-from file_utils import get_ext
+from file_process.utils import get_ext
 from flask_wrappers import skip_error
 import config
 
