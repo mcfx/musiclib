@@ -2,6 +2,7 @@ import re, json, time, random, traceback
 from copy import deepcopy
 from datetime import timedelta
 from functools import reduce
+from urllib.parse import urlparse
 
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -418,6 +419,23 @@ def album_upload():
 	fp = config.TEMP_PATH.rstrip('\\').rstrip('/') + '/upload/' + fn
 	file.save(fp)
 	add_file_task({'type': 'new_album', 'path': fp, 'filename': ofn})
+	return jsonify({'status': True, 'msg': 'Added to queue'})
+
+@app.route('/api/album/upload/remote', methods = ['POST'])
+@skip_error_and_auth
+def album_upload_remote():
+	url = request.json['url']
+	u = urlparse(url)
+	if u.scheme not in ['http', 'https']:
+		return jsonify({'status': False, 'msg': 'Invalid URL scheme'})
+	if '127.0.0.1' in u.netloc:
+		return jsonify({'status': False, 'msg': 'URL can\'t be local'})
+	fn = u.path[u.path.rfind('/') + 1:] or 'index.html'
+	if get_ext(fn) not in config.TRUSTED_EXTENSIONS:
+		return jsonify({'status': False, 'msg': 'Invalid extension'})
+	nfn = str(int(time.time() * 1000)) + '%06x' % random.randint(0, 2 ** 24 - 1) + purify_filename(fn)
+	fp = config.TEMP_PATH.rstrip('\\').rstrip('/') + '/upload/' + nfn
+	add_file_task({'type': 'new_album_remote', 'path': url, 'filename': fn, 'npath': fp})
 	return jsonify({'status': True, 'msg': 'Added to queue'})
 
 @app.route('/api/album/<id>/cover/<cn>/del', methods = ['POST'])

@@ -211,6 +211,40 @@ Vue.component('file-upload', {
 	}
 })
 
+Vue.component('text-submit', {
+	template: `
+	<v-card-text>
+		<v-text-field :label="label" v-model="text"></v-text-field>
+		<v-alert dense :type="alert_type" :icon="alert_icon" v-if="alert_visible"> {{ alert_msg }} </v-alert>
+		<v-btn class="no-upper-case" outlined @click="submit"> {{ button_text }} </v-btn>
+	</v-card-text>
+	`,
+	props: ['label', 'button_text', 'submit_handler'],
+	data: function() {
+		return {
+			alert_type: '',
+			alert_icon: '',
+			alert_visible: '',
+			alert_msg: '',
+			text: '',
+		}
+	},
+	methods: {
+		submit: function() {
+			var _this = this;
+			this.submit_handler(this.text, function(res) {
+				_this.alert_type = res.status ? 'success' : 'error';
+				_this.alert_icon = res.status ? 'mdi-check-circle' : 'mdi-alert';
+				_this.alert_msg = res.msg;
+				_this.alert_visible = true;
+				setTimeout(function() {
+					_this.alert_visible = false;
+				}, 5000);
+			})
+		}
+	}
+})
+
 Vue.component('add-playlist', {
 	template: `
 	<div>
@@ -1133,6 +1167,8 @@ const Manage = {
 	<div>
 		<v-card-title>Upload album</v-card-title>
 		<file-upload label="File" :upload_handler="upload_album"></file-upload>
+		<v-card-title>Download album from remote URL</v-card-title>
+		<text-submit label="URL" button_text="Download" :submit_handler="upload_album_remote"></text-submit>
 		<v-card-title>Create playlist</v-card-title>
 		<v-card-text>
 			<v-text-field v-model="new_playlist_title" label="title"></v-text-field>
@@ -1230,6 +1266,13 @@ const Manage = {
 			let formData = new FormData();
 			formData.append('file', file);
 			axios.post('/api/album/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}}).then(response => {
+				callback(response.data);
+				_this.init(false);
+			})
+		},
+		upload_album_remote: function(url, callback) {
+			var _this = this;
+			axios.post('/api/album/upload/remote', {'url': url}).then(response => {
 				callback(response.data);
 				_this.init(false);
 			})

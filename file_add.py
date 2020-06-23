@@ -1,4 +1,4 @@
-import os, io, json, time, shutil, hashlib, datetime, traceback
+import os, io, json, time, shutil, hashlib, datetime, requests, traceback
 import subprocess
 from copy import deepcopy
 
@@ -304,6 +304,13 @@ def file_process_thread():
 						task_result = {'status': False, 'error': 'Failed to get album info'}
 				ft_lock.acquire()
 				ft_done.append({'task': task, 'result': task_result, 'done_time': int(time.time())})
+				ft_lock.release()
+			elif task['type'] == 'new_album_remote':
+				r = requests.get(task['path'], timeout = 60)
+				open(task['npath'], 'wb').write(r.content)
+				add_file_task({'type': 'new_album', 'path': task['npath'], 'filename': task['filename']})
+				ft_lock.acquire()
+				ft_done.append({'task': task, 'result': {'status': True}, 'done_time': int(time.time())})
 				ft_lock.release()
 			elif task['type'] == 'album_gen_flac':
 				gen_final_flac(task_ext)
