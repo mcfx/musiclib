@@ -333,6 +333,9 @@ def file_process_thread():
 				ft_lock.release()
 			for i in tmp_folders:
 				clear_cache(i, True)
+			if 'path' in task:
+				if os.path.exists(task['path']):
+					os.remove(task['path'])
 		except:
 			err = traceback.format_exc()
 			ft_lock.acquire()
@@ -340,6 +343,9 @@ def file_process_thread():
 			ft_lock.release()
 			for i in tmp_folders:
 				clear_cache(i, True)
+			if 'path' in task:
+				if os.path.exists(task['path']):
+					os.remove(task['path'])
 
 def start_process_thread(app):
 	global tmp_folders
@@ -361,7 +367,7 @@ def start_process_thread(app):
 	md('decompress')
 	md('gen_flac')
 	md('scans')
-	md('upload')
+	md('upload', False)
 	md('verify')
 	ft = Thread(target = run)
 	ft.setDaemon(True)
