@@ -9,7 +9,7 @@ Personal music library.
 - Find music on MusicBrainz by AcoustID, and fill tags automatically.
 
 ## Install
-First install the following softwares: `python3 python3-pip python3-dev ffmpeg shntool p7zip-full flac`. It you are Debian or Ubuntu user, just add 'apt install` in front of the list.
+First install the following softwares: `python3 python3-pip python3-dev ffmpeg shntool p7zip-full flac`. It you are Debian or Ubuntu user, just add `apt install` in front of the list.
 
 Then install the following python packages using pip: `pip3 install mutagen flask flask-sqlalchemy marshmallow-sqlalchemy pymysql mysql-connector chardet pillow pyacoustid`.
 
