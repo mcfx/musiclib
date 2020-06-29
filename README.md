@@ -13,7 +13,7 @@ First install the following softwares: `python3 python3-pip python3-dev ffmpeg s
 
 Then install the following python packages using pip: `pip3 install mutagen flask flask-sqlalchemy marshmallow-sqlalchemy pymysql mysql-connector chardet pillow pyacoustid`.
 
-Create a database in your MySQL server, initialize the database with xxx.sql. Fill the information in config.py (rename from config_sample.py).
+Create a database in your MySQL server, initialize the database with [musiclib.sql](musiclib.sql). Fill the information in config.py (rename from config_sample.py).
 
 If you want the AcoustID feature, download fpcalc from https://acoustid.org/chromaprint, and put it info $PATH.
 
@@ -23,3 +23,5 @@ Finally, you can run `web.py`. (Or you can configure uwsgi if you want)
 - Some tak files are not supported by FFmpeg. You may convert them info flac before uploading.
 
 ## Todo
+- Batch import
+- Share albums, songs, playlists with others
