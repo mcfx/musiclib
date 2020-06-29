@@ -8,7 +8,7 @@ def auth_required(func):
 	def wrapper(*args, **kwargs):
 		token = request.cookies.get('token')
 		if token != config.ACCESS_TOKEN:
-			return jsonify({'status': False})
+			return jsonify({'status': False, 'auth_req' : True})
 		return func(*args, **kwargs)
 	return wrapper
 

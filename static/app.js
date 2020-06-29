@@ -18,7 +18,7 @@ const ap = new APlayer({
 });
 
 function setPlayList(tracks, cur_play = 0, id_only = false) {
-	axios.get('/api/songs/' + (id_only ? tracks : tracks.map(track => track.id)).join() + '/play' + (id_only ? '/full' : '')).then(response => {
+	api.get('/api/songs/' + (id_only ? tracks : tracks.map(track => track.id)).join() + '/play' + (id_only ? '/full' : '')).then(response => {
 		var data = response.data.data, files = data.files, covers = data.covers, titles = data.titles, artists = data.artists, al = [];
 		try { ap.list.clear(); } catch(e) {}
 		for (var i = 0; i < tracks.length; i++) {
@@ -53,10 +53,28 @@ function getDurationString(x) {
 }
 
 function download_song(item) {
-	axios.get('/api/song/' + item.id + '/link').then(response => {
+	api.get('/api/song/' + item.id + '/link').then(response => {
 		emit_download(response.data.data.file_flac || response.data.data.file);
 	})
 }
+
+
+function setCookie(key, value, days) {
+	var date = new Date();
+	date.setTime(+ date + (days * 86400000));
+	window.document.cookie = key + "=" + value + "; expires=" + date.toGMTString() + "; path=/";
+}
+
+const api = axios.create({
+	timeout: 10000,
+	transformResponse: [function(data) {
+		data = JSON.parse(data);
+		if (data.status == false && data.auth_req == true) {
+			router.push({ name: 'auth' })
+		}
+		return data;
+	}],
+});
 
 const opts = { dark: false };
 Vue.use(Vuetify);
@@ -93,7 +111,7 @@ Vue.component('text-edit', {
 		push: function() {
 			var data = {};
 			data[this.pushkey] = this.text;
-			axios.post(this.pushurl, data);
+			api.post(this.pushurl, data);
 		}
 	}
 })
@@ -112,13 +130,13 @@ Vue.component('log-file', {
 		}
 	},
 	created: function() {
-		axios.get('/api/log/' + this.filename).then(response => {
+		api.get('/api/log/' + this.filename).then(response => {
 			this.file_content = response.data.data;
 		})
 	},
 	methods: {
 		download_log: function() {
-			axios.get('/api/log/' + this.filename + '/download').then(response => {
+			api.get('/api/log/' + this.filename + '/download').then(response => {
 				emit_download(response.data.data);
 			})
 		}
@@ -173,7 +191,7 @@ Vue.component('file-links', {
 		}
 	},
 	created: function() {
-		axios.get('/api/album/' + this.albumid + '/files').then(response => {
+		api.get('/api/album/' + this.albumid + '/files').then(response => {
 			this.files = response.data.data;
 		})
 	},
@@ -294,12 +312,12 @@ Vue.component('add-playlist', {
 			this.doSearch();
 		},
 		doSearch: function() {
-			axios.get('/api/playlist/search', {params: {query: this.search, page: 0}}).then(response => {
+			api.get('/api/playlist/search', {params: {query: this.search, page: 0}}).then(response => {
 				this.playlists = response.data.data.playlists;
 			})
 		},
 		addTo: function(playlist) {
-			axios.post('/api/playlist/' + playlist.id + '/addtrack', {song_id: this.cur_track.id}).then(response => {
+			api.post('/api/playlist/' + playlist.id + '/addtrack', {song_id: this.cur_track.id}).then(response => {
 				this.show = false
 			})
 		}
@@ -342,7 +360,7 @@ Vue.component('delete-confirm', {
 			this.show = true;
 		},
 		del: function() {
-			axios.post('/api/' + this.type + '/' + this.id + '/del').then(response => {
+			api.post('/api/' + this.type + '/' + this.id + '/del').then(response => {
 				if (typeof(this.callbackurl) == 'object') {
 					this.$router.push(this.callbackurl)
 				} else if (typeof(this.callback) == 'function') {
@@ -498,12 +516,12 @@ const Album = {
 	},
 	methods: {
 		init: function() {
-			axios.get('/api/album/' + this.id + '/info').then(response => {
+			api.get('/api/album/' + this.id + '/info').then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
 				document.title = this.title + ' - ' + this.artist + ' - Albums';
 			})
-			axios.get('/api/album/' + this.id + '/scans').then(response => {
+			api.get('/api/album/' + this.id + '/scans').then(response => {
 				this.scans = response.data.data;
 			})
 		},
@@ -518,13 +536,13 @@ const Album = {
 			return function(file, callback) {
 				let formData = new FormData();
 				formData.append('file', file);
-				axios.post('/api/album/' + albumid + '/upload/' + tp, formData, {headers: {'Content-Type': 'multipart/form-data'}}).then(response => {
+				api.post('/api/album/' + albumid + '/upload/' + tp, formData, {headers: {'Content-Type': 'multipart/form-data'}}).then(response => {
 					callback(response.data);
 				})
 			}
 		},
 		gen_flac: function() {
-			axios.post('/api/album/' + this.id + '/gen_flac').then(response => {
+			api.post('/api/album/' + this.id + '/gen_flac').then(response => {
 				var _this = this;
 				this.gen_flac_result = response.data.status ? 'OK' : 'Error';
 				setTimeout(function() {
@@ -533,7 +551,7 @@ const Album = {
 			})
 		},
 		update_covers: function() {
-			axios.post('/api/album/' + this.id + '/update_covers', {covers: this.cover_files})
+			api.post('/api/album/' + this.id + '/update_covers', {covers: this.cover_files})
 		}
 	}
 }
@@ -598,7 +616,7 @@ const AlbumEdit = {
 	},
 	methods: {
 		init: function() {
-			axios.get('/api/album/' + this.id + '/info').then(response => {
+			api.get('/api/album/' + this.id + '/info').then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
 				document.title = this.title + ' - ' + this.artist + ' - Edit - Albums';
@@ -615,7 +633,7 @@ const AlbumEdit = {
 				trusted: this.trusted,
 				songs: this.songs,
 			};
-			axios.post('/api/album/' + this.id + '/update', tmp).then(response => {
+			api.post('/api/album/' + this.id + '/update', tmp).then(response => {
 				this.$router.push({ name: 'album', params: { id: this.id } });
 			})
 		}
@@ -778,7 +796,7 @@ const AlbumManage = {
 	},
 	methods: {
 		init: function() {
-			axios.get('/api/album/' + this.id + '/info?extra_data').then(response => {
+			api.get('/api/album/' + this.id + '/info?extra_data').then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
 				document.title = this.title + ' - ' + this.artist + ' - Manage - Albums';
@@ -786,7 +804,7 @@ const AlbumManage = {
 			})
 		},
 		set_musicbrainz_id: function() {
-			axios.post('/api/album/' + this.id + '/set_musicbrainz_id', {'mid': this.musicbrainz_id}).then(response => {
+			api.post('/api/album/' + this.id + '/set_musicbrainz_id', {'mid': this.musicbrainz_id}).then(response => {
 				var _this = this;
 				this.set_musicbrainz_id_result = response.data.status ? 'Added to queue.' : 'Error';
 				setTimeout(function() {
@@ -795,7 +813,7 @@ const AlbumManage = {
 			})
 		},
 		match_acoustid: function() {
-			axios.post('/api/album/' + this.id + '/match_acoustid').then(response => {
+			api.post('/api/album/' + this.id + '/match_acoustid').then(response => {
 				var _this = this;
 				this.match_acoustid_result = response.data.status ? 'Added to queue.' : 'Error';
 				setTimeout(function() {
@@ -827,7 +845,7 @@ const AlbumManage = {
 			}
 		},
 		cuetools_verify: function() {
-			axios.post('/api/album/' + this.id + '/cuetools_verify').then(response => {
+			api.post('/api/album/' + this.id + '/cuetools_verify').then(response => {
 				var _this = this;
 				this.cuetools_verify_result = response.data.status ? 'Added to queue.' : 'Error';
 				setTimeout(function() {
@@ -836,7 +854,7 @@ const AlbumManage = {
 			})
 		},
 		apply_musicbrainz_cover_to_album: function() {
-			axios.post('/api/album/' + this.id + '/apply_musicbrainz_cover', {'mid': this.album_musicbrainz_match.id}).then(response => {
+			api.post('/api/album/' + this.id + '/apply_musicbrainz_cover', {'mid': this.album_musicbrainz_match.id}).then(response => {
 				var _this = this;
 				this.apply_musicbrainz_cover_to_album_result = response.data.status ? 'Added to queue.' : 'Error';
 				setTimeout(function() {
@@ -845,7 +863,7 @@ const AlbumManage = {
 			})
 		},
 		apply_musicbrainz_to_album: function() {
-			axios.post('/api/album/' + this.id + '/apply_musicbrainz', {'mid': this.album_musicbrainz_match.id}).then(response => {
+			api.post('/api/album/' + this.id + '/apply_musicbrainz', {'mid': this.album_musicbrainz_match.id}).then(response => {
 				var _this = this;
 				this.apply_musicbrainz_to_album_result = response.data.status ? 'Done' : 'Error';
 				setTimeout(function() {
@@ -854,7 +872,7 @@ const AlbumManage = {
 			})
 		},
 		apply_musicbrainz_to_song: function() {
-			axios.post('/api/song/' + this.selected_track.id + '/apply_musicbrainz', {'mid': this.track_musicbrainz_match.id}).then(response => {
+			api.post('/api/song/' + this.selected_track.id + '/apply_musicbrainz', {'mid': this.track_musicbrainz_match.id}).then(response => {
 				var _this = this;
 				this.apply_musicbrainz_to_song_result = response.data.status ? 'Done' : 'Error';
 				setTimeout(function() {
@@ -907,7 +925,7 @@ const Albums = {
 	},
 	methods: {
 		doSearch: function() {
-			axios.get('/api/album/search', {params: {query: this.search, page: this.cur_page - 1}}).then(response => {
+			api.get('/api/album/search', {params: {query: this.search, page: this.cur_page - 1}}).then(response => {
 				this.albums = response.data.data.albums;
 				this.count = response.data.data.count;
 			})
@@ -968,7 +986,7 @@ const Songs = {
 	},
 	methods: {
 		doSearch: function() {
-			axios.get('/api/song/search', {params: {query: this.search, page: this.cur_page - 1}}).then(response => {
+			api.get('/api/song/search', {params: {query: this.search, page: this.cur_page - 1}}).then(response => {
 				this.songs = response.data.data.songs;
 				this.count = response.data.data.count;
 				this.cur_show_page = this.cur_page;
@@ -1041,7 +1059,7 @@ const Playlist = {
 	},
 	methods: {
 		init: function() {
-			axios.get('/api/playlist/' + this.id + '/info/page/' + (this.cur_page - 1)).then(response => {
+			api.get('/api/playlist/' + this.id + '/info/page/' + (this.cur_page - 1)).then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
 				this.cur_show_page = this.cur_page;
@@ -1103,7 +1121,7 @@ const PlaylistEdit = {
 	},
 	methods: {
 		init: function() {
-			axios.get('/api/playlist/' + this.id + '/info').then(response => {
+			api.get('/api/playlist/' + this.id + '/info').then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
 				document.title = this.title + ' - Edit - Playlists';
@@ -1115,7 +1133,7 @@ const PlaylistEdit = {
 				description: this.description,
 				tracks: this.tracks.map(x => x.id).join(),
 			};
-			axios.post('/api/playlist/' + this.id + '/update', tmp).then(response => {
+			api.post('/api/playlist/' + this.id + '/update', tmp).then(response => {
 				this.$router.push({ name: 'playlist', params: { id: this.id } });
 			})
 		}
@@ -1159,7 +1177,7 @@ const Playlists = {
 	},
 	methods: {
 		doSearch: function() {
-			axios.get('/api/playlist/search', {params: {query: this.search, page: this.cur_page - 1}}).then(response => {
+			api.get('/api/playlist/search', {params: {query: this.search, page: this.cur_page - 1}}).then(response => {
 				this.playlists = response.data.data.playlists;
 				this.count = response.data.data.count;
 			})
@@ -1261,7 +1279,7 @@ const Manage = {
 	},
 	methods: {
 		init: function(setnxt = true) {
-			axios.get('/api/queue').then(response => {
+			api.get('/api/queue').then(response => {
 				this.queue = response.data;
 				if (this.working && setnxt) setTimeout(this.init, 2000);
 			})
@@ -1270,21 +1288,50 @@ const Manage = {
 			var _this = this;
 			let formData = new FormData();
 			formData.append('file', file);
-			axios.post('/api/album/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}}).then(response => {
+			api.post('/api/album/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}}).then(response => {
 				callback(response.data);
 				_this.init(false);
 			})
 		},
 		upload_album_remote: function(url, callback) {
 			var _this = this;
-			axios.post('/api/album/upload/remote', {'url': url}).then(response => {
+			api.post('/api/album/upload/remote', {'url': url}).then(response => {
 				callback(response.data);
 				_this.init(false);
 			})
 		},
 		create_playlist: function() {
-			axios.post('/api/playlist/create', {'title': this.new_playlist_title}).then(response => {
+			api.post('/api/playlist/create', {'title': this.new_playlist_title}).then(response => {
 				this.$router.push({ name: 'playlist', params: { id: response.data.id } })
+			})
+		}
+	}
+}
+
+const Auth = {
+	template: `
+	<div>
+		<v-card-title>Authenticate</v-card-title>
+		<v-card-text>
+			<v-text-field v-model="token" label="Token"></v-text-field>
+			<v-btn class="no-upper-case" outlined @click="login">Login</v-btn>
+		</v-card-text>
+	</div>
+	`,
+	data: function() {
+		return {
+			token: '',
+		}
+	},
+	methods: {
+		login: function() {
+			setCookie('token', this.token, 100000);
+			axios.get('/api/queue').then(response => {
+				if (!response.data.auth_req) {
+					router.push({ name: 'index' })
+				} else {
+					alert('Invalid token!')
+				}
 			})
 		}
 	}
@@ -1293,7 +1340,7 @@ const Manage = {
 const router = new VueRouter({
 	mode: vuerouter_history_mode ? 'history' : 'hash',
 	routes: [
-		{ path: '/', component: Index },
+		{ path: '/', component: Index, name: 'index' },
 		{ path: '/album/:id', component: Album, name: 'album', meta: {title: route => { return route.params.id + ' - Albums' }}},
 		{ path: '/album/:id/edit', component: AlbumEdit, name: 'album_edit', meta: {title: route => { return route.params.id + ' - Edit - Albums' }}},
 		{ path: '/album/:id/manage', component: AlbumManage, name: 'album_manage', meta: {title: route => { return route.params.id + ' - Manage - Albums' }}},
@@ -1303,6 +1350,7 @@ const router = new VueRouter({
 		{ path: '/playlist/:id/edit', component: PlaylistEdit, name: 'playlist_edit', meta: {title: route => { return route.params.id + ' - Edit - Playlists' }}},
 		{ path: '/playlists', component: Playlists, name: 'playlists', meta: {title: 'Playlists' }},
 		{ path: '/manage', component: Manage, name: 'manage', meta: {title: 'Manage' }},
+		{ path: '/auth', component: Auth, name: 'auth', meta: {title: 'Auth' }},
 	]
 })
 
