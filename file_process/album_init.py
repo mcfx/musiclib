@@ -128,6 +128,8 @@ def get_album_info_fulldisc(fo, fn):
 	if fo[-1] != '/':
 		fo += '/'
 	s = cuereader.read_cue(open(fn, 'rb').read())
+	if s is None:
+		return None
 	#print(s)
 	file_format = {}
 	res_tracks = []

@@ -11,6 +11,7 @@ def read_cue(s):
 	s = list(filter(len, s.replace('\r', '').split('\n')))
 	g_vars = {}
 	cur_file = ('', '')
+	file_cnt = 0
 	tracks = {}
 	cur = g_vars
 	lst = g_vars
@@ -35,6 +36,7 @@ def read_cue(s):
 				cur_file = (unescape(p), '')
 			else:
 				cur_file = (unescape(sa[:p]), unescape(sa[p + 1:]))
+			file_cnt += 1
 		elif so == 'TRACK':
 			sa = sa.split(' ')
 			lst = cur
@@ -57,5 +59,7 @@ def read_cue(s):
 			pass
 		else:
 			pass
+	if file_cnt != 1:
+		return None
 	g_vars['tracks'] = tracks
 	return g_vars
