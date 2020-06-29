@@ -52,12 +52,15 @@ function getDurationString(x) {
 	return ('0' + parseInt(x / 60)).substr(-2) + ':' + ('0' + x % 60).substr(-2);
 }
 
-function download_song(item) {
+function getDefaultCover(x) {
+	return x.length ? x[0] : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAANSURBVBhXY/j//z8DAAj8Av6IXwbgAAAAAElFTkSuQmCC';
+}
+
+function downloadSong(item) {
 	api.get('/api/song/' + item.id + '/link').then(response => {
 		emit_download(response.data.data.file_flac || response.data.data.file);
 	})
 }
-
 
 function setCookie(key, value, days) {
 	var date = new Date();
@@ -80,8 +83,6 @@ const opts = { dark: false };
 Vue.use(Vuetify);
 Vue.use(VueViewer.default);
 Vue.use(VueContextMenu);
-
-const Index = { template: '<div>test index</div>' }
 
 Vue.component('text-edit', {
 	template: `
@@ -376,6 +377,62 @@ Vue.component('delete-confirm', {
 	}
 })
 
+Vue.component('cover-text', {
+	template: `
+	<v-card flat>
+		<div style="margin-bottom:10%;padding-bottom:100%;overflow:hidden;position:relative">
+			<img :src="img" style="width:100%;position:absolute" @click="go"></img>
+		</div>
+		<div class="text-center" v-if="text">{{ text }}</div>
+		<v-card-text class="text-center" style="padding:0" v-if="subtext">{{ subtext }}</v-card-text>
+	</v-card>
+	`,
+	props: ['img', 'text', 'subtext', 'route'],
+	methods: {
+		go: function() {
+			this.$router.push(this.route)
+		}
+	}
+})
+
+const Index = {
+	template: `
+	<div>
+		<v-card-title>Random albums</v-card-title>
+		<v-row style="margin:0">
+			<v-col cols="2" v-for="album in albums">
+				<cover-text :img="getDefaultCover(album.cover_files)" :text="album.title" :subtext="album.artist" :route="{ name: 'album', params: { id: album.id }}"></cover-text>
+			</v-col>
+		</v-row>
+		<v-card-title>Random songs</v-card-title>
+		<v-row style="margin:0">
+			<v-col cols="2" v-for="song in songs">
+				<cover-text :img="getDefaultCover(song.cover_files)" :text="song.title" :subtext="song.artist" :route="{ name: 'album', params: { id: song.album_id }}"></cover-text>
+			</v-col>
+		</v-row>
+	</div>
+	`,
+	data: function() {
+		return {
+			albums: [],
+			songs: [],
+		}
+	},
+	created: function() {
+		this.init()
+	},
+	methods: {
+		init: function() {
+			axios.get('/api/album/random?count=6').then(response => {
+				this.albums = response.data.data
+			})
+			axios.get('/api/song/random?count=6').then(response => {
+				this.songs = response.data.data
+			})
+		}
+	}
+}
+
 const Album = {
 	template: `
 	<div>
@@ -415,7 +472,7 @@ const Album = {
 					<td>{{ item.track }}</td>
 					<td>
 						<v-btn text icon small v-on:click="setPlayList(songs, key)"><v-icon>mdi-play-circle</v-icon></v-btn>
-						<v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn>
+						<v-btn text icon small v-on:click="downloadSong(item)"><v-icon>mdi-download</v-icon></v-btn>
 						<v-btn text icon small v-on:click="$refs.add_playlist.add(item)"><v-icon>mdi-folder-plus</v-icon></v-btn>
 					</td>
 					<td>{{ item.title }}</td>
@@ -507,7 +564,7 @@ const Album = {
 	},
 	computed: {
 		cover_default: function() {
-			return this.cover_files.length ? this.cover_files[0] : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAANSURBVBhXY/j//z8DAAj8Av6IXwbgAAAAAElFTkSuQmCC';
+			return getDefaultCover(this.cover_files);
 		}
 	},
 	created: function() {
@@ -954,7 +1011,7 @@ const Songs = {
 					<td>{{ key + 1 + (cur_show_page - 1) * results_per_page }}</td>
 					<td>
 						<v-btn text icon small v-on:click="setPlayList(songs, key)"><v-icon>mdi-play-circle</v-icon></v-btn>
-						<v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn>
+						<v-btn text icon small v-on:click="downloadSong(item)"><v-icon>mdi-download</v-icon></v-btn>
 						<v-btn text icon small v-on:click="$refs.add_playlist.add(item)"><v-icon>mdi-folder-plus</v-icon></v-btn>
 					</td>
 					<td>{{ item.title }}</td>
@@ -1023,7 +1080,7 @@ const Playlist = {
 					<td>{{ key + 1 + (cur_show_page - 1) * results_per_page }}</td>
 					<td>
 						<v-btn text icon small v-on:click="setPlayList(full_tracklist, key + (cur_show_page - 1) * results_per_page , true)"><v-icon>mdi-play-circle</v-icon></v-btn>
-						<v-btn text icon small v-on:click="download_song(item)"><v-icon>mdi-download</v-icon></v-btn>
+						<v-btn text icon small v-on:click="downloadSong(item)"><v-icon>mdi-download</v-icon></v-btn>
 						<v-btn text icon small v-on:click="$refs.add_playlist.add(item)"><v-icon>mdi-folder-plus</v-icon></v-btn>
 					</td>
 					<td>{{ item.title }}</td>

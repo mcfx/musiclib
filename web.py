@@ -8,6 +8,7 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_, and_
 import sqlalchemy.types as types
+from sqlalchemy.sql.expression import func
 from marshmallow_sqlalchemy import SQLAlchemySchema, SQLAlchemyAutoSchema, auto_field
 from marshmallow import pre_load, fields
 
@@ -173,6 +174,20 @@ def search_album():
 		tmp.pop('cover_files')
 		res.append(tmp)
 	return jsonify({'status': True, 'data': {'count': count, 'albums': res}})
+
+@app.route('/api/album/random')
+@skip_error_and_auth
+def random_album():
+	count = int(request.values.get('count'))
+	if count <= 0 or count > 100:
+		return jsonify({'status': False})
+	albums = Album.query.order_by(func.rand()).all()[:count]
+	res = []
+	for album in albums:
+		tmp = album_schema.dump(album)
+		tmp['cover_files'] = list(map(lambda x: files.get_link(x, 'cover.jpg'), tmp['cover_files']))
+		res.append(tmp)
+	return jsonify({'status': True, 'data': res})
 
 @app.route('/api/album/<id>/info')
 @skip_error_and_auth
@@ -477,6 +492,22 @@ def search_song():
 		tmp['album_title'] = album.title
 		res.append(tmp)
 	return jsonify({'status': True, 'data': {'count': count, 'songs': res}})
+
+@app.route('/api/song/random')
+@skip_error_and_auth
+def random_song():
+	count = int(request.values.get('count'))
+	if count <= 0 or count > 100:
+		return jsonify({'status': False})
+	songs = Song.query.order_by(func.rand()).all()[:count]
+	res = []
+	for song in songs:
+		album = Album.query.filter(Album.id == song.album_id).one()
+		tmp = song_schema.dump(song)
+		tmp['album_title'] = album.title
+		tmp['cover_files'] = list(map(lambda x: files.get_link(x, 'cover.jpg'), album.cover_files))
+		res.append(tmp)
+	return jsonify({'status': True, 'data': res})
 
 @app.route('/api/song/<id>/link')
 @skip_error_and_auth
