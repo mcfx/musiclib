@@ -69,7 +69,6 @@ function setCookie(key, value, days) {
 }
 
 const api = axios.create({
-	timeout: 10000,
 	transformResponse: [function(data) {
 		data = JSON.parse(data);
 		if (data.status == false && data.auth_req == true) {
