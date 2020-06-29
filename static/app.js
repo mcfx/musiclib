@@ -423,10 +423,10 @@ const Index = {
 	},
 	methods: {
 		init: function() {
-			axios.get('/api/album/random?count=6').then(response => {
+			api.get('/api/album/random?count=6').then(response => {
 				this.albums = response.data.data
 			})
-			axios.get('/api/song/random?count=6').then(response => {
+			api.get('/api/song/random?count=6').then(response => {
 				this.songs = response.data.data
 			})
 		}
