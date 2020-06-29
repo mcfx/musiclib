@@ -20,7 +20,6 @@ If you want the AcoustID feature, download fpcalc from https://acoustid.org/chro
 Finally, you can run `web.py`. (Or you can configure uwsgi if you want)
 
 ## Known issues
-- Some albums with cue and multiple files are not supported. Please delete the cue file before uploading.
 - Some tak files are not supported by FFmpeg. You may convert them info flac before uploading.
 
 ## Todo
