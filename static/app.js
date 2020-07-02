@@ -167,6 +167,9 @@ Vue.component('scans', {
 	</div>
 	`,
 	props: ['scan'],
+	created: function() {
+		this.scan.files.sort((a, b) => a[0].localeCompare(b[0], navigator.languages[0] || navigator.language, {numeric: true, ignorePunctuation: true}))
+	},
 	methods: {
 		del: function() {
 			var album = this.$parent.$parent.$parent.$parent;
