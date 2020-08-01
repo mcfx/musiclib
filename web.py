@@ -509,6 +509,12 @@ def random_song():
 		res.append(tmp)
 	return jsonify({'status': True, 'data': res})
 
+def get_song_filename(song):
+	t = song.artist + ' - ' + song.title
+	if len(t) < 80:
+		return t
+	return song.title
+
 @app.route('/api/song/<id>/link')
 @skip_error_and_auth
 def get_song_link(id):
@@ -516,7 +522,7 @@ def get_song_link(id):
 	song = Song.query.filter(Song.id == id).first()
 	if song is None:
 		return jsonify({'status': False})
-	fn = song.artist + ' - ' + song.title
+	fn = get_song_filename(song)
 	data = {}
 	for key in ['file', 'file_flac']:
 		mfn = song.__dict__[key]
@@ -551,7 +557,7 @@ def get_songs_play(ids, full = False):
 		song = Song.query.filter(Song.id == id).first()
 		if song is None:
 			return jsonify({'status': False})
-		fn = song.artist + ' - ' + song.title
+		fn = get_song_filename(song)
 		link = ''
 		for key in ['file_flac', 'file']:
 			mfn = song.__dict__[key]
