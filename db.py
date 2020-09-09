@@ -1,12 +1,15 @@
 import pymysql
 import config
 
+
 def getdb():
-	return pymysql.connect(config.SQL_ADDR,config.SQL_USER,config.SQL_PASSWORD,config.SQL_DATABASE)
+	return pymysql.connect(config.SQL_ADDR, config.SQL_USER, config.SQL_PASSWORD, config.SQL_DATABASE)
+
 
 db = getdb()
 
-def execute(s, args = None, tdb = None):
+
+def execute(s, args=None, tdb=None):
 	if tdb is None:
 		tdb = db
 	try:
@@ -16,27 +19,31 @@ def execute(s, args = None, tdb = None):
 		pass
 	return cur
 
-def select(s, args = None, tdb = None):
+
+def select(s, args=None, tdb=None):
 	if tdb is None:
 		tdb = db
 	cur = tdb.cursor()
 	cur.execute(s, args)
 	return cur
 
-def select_first(s, args = None, tdb = None):
+
+def select_first(s, args=None, tdb=None):
 	if tdb is None:
 		tdb = db
 	for i in select(s, args, tdb):
 		return i
 	return None
 
-def count(s, args = None, tdb = None):
+
+def count(s, args=None, tdb=None):
 	if tdb is None:
 		tdb = db
 	cur = tdb.cursor()
 	cur.execute(s, args)
 	for i in cur:
 		return i[0]
+
 
 def renew():
 	global db

@@ -20,7 +20,7 @@ const ap = new APlayer({
 function setPlayList(tracks, cur_play = 0, id_only = false) {
 	api.get('/api/songs/' + (id_only ? tracks : tracks.map(track => track.id)).join() + '/play' + (id_only ? '/full' : '')).then(response => {
 		var data = response.data.data, files = data.files, covers = data.covers, titles = data.titles, artists = data.artists, al = [];
-		try { ap.list.clear(); } catch(e) {}
+		try { ap.list.clear(); } catch (e) { }
 		for (var i = 0; i < tracks.length; i++) {
 			al.push({
 				name: id_only ? titles[i] : tracks[i].title,
@@ -69,7 +69,7 @@ function setCookie(key, value, days) {
 }
 
 const api = axios.create({
-	transformResponse: [function(data) {
+	transformResponse: [function (data) {
 		data = JSON.parse(data);
 		if (data.status == false && data.auth_req == true) {
 			router.push({ name: 'auth' })
@@ -92,23 +92,23 @@ Vue.component('text-edit', {
 	</span>
 	`,
 	props: ['text', 'pushurl', 'pushkey'],
-	data: function() {
+	data: function () {
 		return {
 			editing: false
 		}
 	},
-	created: function() {
+	created: function () {
 		this.debouncedPush = _.debounce(() => { this.push() }, 150)
 	},
 	methods: {
-		start_edit: function() {
+		start_edit: function () {
 			this.editing = true
 		},
-		stop_edit: function() {
+		stop_edit: function () {
 			this.editing = false;
 			this.push();
 		},
-		push: function() {
+		push: function () {
 			var data = {};
 			data[this.pushkey] = this.text;
 			api.post(this.pushurl, data);
@@ -124,18 +124,18 @@ Vue.component('log-file', {
 	</div>
 	`,
 	props: ['filename'],
-	data: function() {
+	data: function () {
 		return {
 			file_content: ''
 		}
 	},
-	created: function() {
+	created: function () {
 		api.get('/api/log/' + this.filename).then(response => {
 			this.file_content = response.data.data;
 		})
 	},
 	methods: {
-		download_log: function() {
+		download_log: function () {
 			api.get('/api/log/' + this.filename + '/download').then(response => {
 				emit_download(response.data.data);
 			})
@@ -167,11 +167,11 @@ Vue.component('scans', {
 	</div>
 	`,
 	props: ['scan'],
-	created: function() {
-		this.scan.files.sort((a, b) => a[0].localeCompare(b[0], navigator.languages[0] || navigator.language, {numeric: true, ignorePunctuation: true}))
+	created: function () {
+		this.scan.files.sort((a, b) => a[0].localeCompare(b[0], navigator.languages[0] || navigator.language, { numeric: true, ignorePunctuation: true }))
 	},
 	methods: {
-		del: function() {
+		del: function () {
 			var album = this.$parent.$parent.$parent.$parent;
 			this.$refs.delete_confirm.start('scan', this.scan.id, this.scan.packname, 0, album.init.bind(album))
 		}
@@ -188,18 +188,18 @@ Vue.component('file-links', {
 	</div>
 	`,
 	props: ['albumid'],
-	data: function() {
+	data: function () {
 		return {
 			files: []
 		}
 	},
-	created: function() {
+	created: function () {
 		api.get('/api/album/' + this.albumid + '/files').then(response => {
 			this.files = response.data.data;
 		})
 	},
 	methods: {
-		download: function(item) {
+		download: function (item) {
 			emit_download('/filebk/' + item.file + '?dlname=' + item.name)
 		}
 	}
@@ -213,7 +213,7 @@ Vue.component('file-upload', {
 	</v-card-text>
 	`,
 	props: ['label', 'upload_handler'],
-	data: function() {
+	data: function () {
 		return {
 			alert_type: '',
 			alert_icon: '',
@@ -222,14 +222,14 @@ Vue.component('file-upload', {
 		}
 	},
 	methods: {
-		upload: function(e) {
+		upload: function (e) {
 			var _this = this;
-			this.upload_handler(e, function(res) {
+			this.upload_handler(e, function (res) {
 				_this.alert_type = res.status ? 'success' : 'error';
 				_this.alert_icon = res.status ? 'mdi-check-circle' : 'mdi-alert';
 				_this.alert_msg = res.msg;
 				_this.alert_visible = true;
-				setTimeout(function() {
+				setTimeout(function () {
 					_this.alert_visible = false;
 				}, 5000);
 			})
@@ -246,7 +246,7 @@ Vue.component('text-submit', {
 	</v-card-text>
 	`,
 	props: ['label', 'button_text', 'submit_handler'],
-	data: function() {
+	data: function () {
 		return {
 			alert_type: '',
 			alert_icon: '',
@@ -256,14 +256,14 @@ Vue.component('text-submit', {
 		}
 	},
 	methods: {
-		submit: function() {
+		submit: function () {
 			var _this = this;
-			this.submit_handler(this.text, function(res) {
+			this.submit_handler(this.text, function (res) {
 				_this.alert_type = res.status ? 'success' : 'error';
 				_this.alert_icon = res.status ? 'mdi-check-circle' : 'mdi-alert';
 				_this.alert_msg = res.msg;
 				_this.alert_visible = true;
-				setTimeout(function() {
+				setTimeout(function () {
 					_this.alert_visible = false;
 				}, 5000);
 			})
@@ -298,29 +298,29 @@ Vue.component('add-playlist', {
 		</v-dialog>
 	</div>
 	`,
-	data: function() {
+	data: function () {
 		return {
 			show: false,
 			search: '',
 			playlists: [],
 		}
 	},
-	created: function() {
+	created: function () {
 		this.debouncedSearch = _.debounce(() => { this.doSearch() }, 150)
 	},
 	methods: {
-		add: function(track) {
+		add: function (track) {
 			this.show = true;
 			this.cur_track = track;
 			this.doSearch();
 		},
-		doSearch: function() {
-			api.get('/api/playlist/search', {params: {query: this.search, page: 0}}).then(response => {
+		doSearch: function () {
+			api.get('/api/playlist/search', { params: { query: this.search, page: 0 } }).then(response => {
 				this.playlists = response.data.data.playlists;
 			})
 		},
-		addTo: function(playlist) {
-			api.post('/api/playlist/' + playlist.id + '/addtrack', {song_id: this.cur_track.id}).then(response => {
+		addTo: function (playlist) {
+			api.post('/api/playlist/' + playlist.id + '/addtrack', { song_id: this.cur_track.id }).then(response => {
 				this.show = false
 			})
 		}
@@ -343,7 +343,7 @@ Vue.component('delete-confirm', {
 		</v-dialog>
 	</div>
 	`,
-	data: function() {
+	data: function () {
 		return {
 			show: false,
 			type: '',
@@ -354,7 +354,7 @@ Vue.component('delete-confirm', {
 		}
 	},
 	methods: {
-		start: function(type, id, name, callbackurl = 0, callback = 0) {
+		start: function (type, id, name, callbackurl = 0, callback = 0) {
 			this.type = type;
 			this.id = id;
 			this.name = name;
@@ -362,17 +362,17 @@ Vue.component('delete-confirm', {
 			this.callback = callback;
 			this.show = true;
 		},
-		del: function() {
+		del: function () {
 			api.post('/api/' + this.type + '/' + this.id + '/del').then(response => {
-				if (typeof(this.callbackurl) == 'object') {
+				if (typeof (this.callbackurl) == 'object') {
 					this.$router.push(this.callbackurl)
-				} else if (typeof(this.callback) == 'function') {
+				} else if (typeof (this.callback) == 'function') {
 					this.callback()
 				}
 			});
 			this.hide();
 		},
-		hide: function() {
+		hide: function () {
 			this.show = false;
 			this.id = 0;
 		}
@@ -391,7 +391,7 @@ Vue.component('cover-text', {
 	`,
 	props: ['img', 'text', 'subtext', 'route'],
 	methods: {
-		go: function() {
+		go: function () {
 			this.$router.push(this.route)
 		}
 	}
@@ -414,17 +414,17 @@ const Index = {
 		</v-row>
 	</div>
 	`,
-	data: function() {
+	data: function () {
 		return {
 			albums: [],
 			songs: [],
 		}
 	},
-	created: function() {
+	created: function () {
 		this.init()
 	},
 	methods: {
-		init: function() {
+		init: function () {
 			api.get('/api/album/random?count=6').then(response => {
 				this.albums = response.data.data
 			})
@@ -543,7 +543,7 @@ const Album = {
 		<delete-confirm ref="delete_confirm"></delete-confirm>
 	</div>
 	`,
-	data: function() {
+	data: function () {
 		return {
 			id: -1,
 			title: '',
@@ -565,16 +565,16 @@ const Album = {
 		}
 	},
 	computed: {
-		cover_default: function() {
+		cover_default: function () {
 			return getDefaultCover(this.cover_files);
 		}
 	},
-	created: function() {
+	created: function () {
 		this.id = this.$route.params.id;
 		this.init();
 	},
 	methods: {
-		init: function() {
+		init: function () {
 			api.get('/api/album/' + this.id + '/info').then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
@@ -584,33 +584,33 @@ const Album = {
 				this.scans = response.data.data;
 			})
 		},
-		edit: function() {
+		edit: function () {
 			this.$router.push({ name: 'album_edit', params: { id: this.id } });
 		},
-		manage: function() {
+		manage: function () {
 			this.$router.push({ name: 'album_manage', params: { id: this.id } });
 		},
-		upload: function(tp) {
+		upload: function (tp) {
 			var albumid = this.id;
-			return function(file, callback) {
+			return function (file, callback) {
 				let formData = new FormData();
 				formData.append('file', file);
-				api.post('/api/album/' + albumid + '/upload/' + tp, formData, {headers: {'Content-Type': 'multipart/form-data'}}).then(response => {
+				api.post('/api/album/' + albumid + '/upload/' + tp, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(response => {
 					callback(response.data);
 				})
 			}
 		},
-		gen_flac: function() {
+		gen_flac: function () {
 			api.post('/api/album/' + this.id + '/gen_flac').then(response => {
 				var _this = this;
 				this.gen_flac_result = response.data.status ? 'OK' : 'Error';
-				setTimeout(function() {
+				setTimeout(function () {
 					_this.gen_flac_result = '';
 				}, 3000);
 			})
 		},
-		update_covers: function() {
-			api.post('/api/album/' + this.id + '/update_covers', {covers: this.cover_files})
+		update_covers: function () {
+			api.post('/api/album/' + this.id + '/update_covers', { covers: this.cover_files })
 		}
 	}
 }
@@ -651,7 +651,7 @@ const AlbumEdit = {
 		<v-btn class="no-upper-case" outlined @click="submit">Confirm</v-btn>
 	</div>
 	`,
-	data: function() {
+	data: function () {
 		return {
 			id: -1,
 			title: '',
@@ -669,19 +669,19 @@ const AlbumEdit = {
 			songs: []
 		}
 	},
-	created: function() {
+	created: function () {
 		this.id = this.$route.params.id;
 		this.init();
 	},
 	methods: {
-		init: function() {
+		init: function () {
 			api.get('/api/album/' + this.id + '/info').then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
 				document.title = this.title + ' - ' + this.artist + ' - Edit - Albums';
 			})
 		},
-		submit: function() {
+		submit: function () {
 			var tmp = {
 				title: this.title,
 				release_date: this.release_date,
@@ -808,7 +808,7 @@ const AlbumManage = {
 		</v-row>
 	</div>
 	`,
-	data: function() {
+	data: function () {
 		return {
 			id: -1,
 			title: '',
@@ -839,22 +839,22 @@ const AlbumManage = {
 			working: false,
 		}
 	},
-	created: function() {
+	created: function () {
 		this.id = this.$route.params.id;
 		this.working = true;
 		console.log('1')
 		this.init();
 	},
 	computed: {
-		album_musicbrainz: function() {
+		album_musicbrainz: function () {
 			return this.extra_data.musicbrainz || [];
 		}
 	},
-	destroyed: function() {
+	destroyed: function () {
 		this.working = false
 	},
 	methods: {
-		init: function() {
+		init: function () {
 			api.get('/api/album/' + this.id + '/info?extra_data').then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
@@ -862,32 +862,32 @@ const AlbumManage = {
 				if (this.working) setTimeout(this.init, 2000);
 			})
 		},
-		set_musicbrainz_id: function() {
-			api.post('/api/album/' + this.id + '/set_musicbrainz_id', {'mid': this.musicbrainz_id}).then(response => {
+		set_musicbrainz_id: function () {
+			api.post('/api/album/' + this.id + '/set_musicbrainz_id', { 'mid': this.musicbrainz_id }).then(response => {
 				var _this = this;
 				this.set_musicbrainz_id_result = response.data.status ? 'Added to queue.' : 'Error';
-				setTimeout(function() {
+				setTimeout(function () {
 					_this.set_musicbrainz_id_result = '';
 				}, 3000);
 			})
 		},
-		match_acoustid: function() {
+		match_acoustid: function () {
 			api.post('/api/album/' + this.id + '/match_acoustid').then(response => {
 				var _this = this;
 				this.match_acoustid_result = response.data.status ? 'Added to queue.' : 'Error';
-				setTimeout(function() {
+				setTimeout(function () {
 					_this.match_acoustid_result = '';
 				}, 3000);
 			})
 		},
-		change_musicbrainz_match_album: function(id) {
+		change_musicbrainz_match_album: function (id) {
 			for (var i = 0; i < this.album_musicbrainz.length; i++) {
 				if (this.album_musicbrainz[i].id == id) {
 					this.album_musicbrainz_match = this.album_musicbrainz[i];
 				}
 			}
 		},
-		change_track: function(id) {
+		change_track: function (id) {
 			for (var i = 0; i < this.songs.length; i++) {
 				if (this.songs[i].id == id) {
 					this.selected_track = this.songs[i];
@@ -896,50 +896,50 @@ const AlbumManage = {
 				}
 			}
 		},
-		change_musicbrainz_match_track: function(id) {
+		change_musicbrainz_match_track: function (id) {
 			for (var i = 0; i < this.track_musicbrainz.length; i++) {
 				if (this.track_musicbrainz[i].id == id) {
 					this.track_musicbrainz_match = this.track_musicbrainz[i];
 				}
 			}
 		},
-		cuetools_verify: function() {
+		cuetools_verify: function () {
 			api.post('/api/album/' + this.id + '/cuetools_verify').then(response => {
 				var _this = this;
 				this.cuetools_verify_result = response.data.status ? 'Added to queue.' : 'Error';
-				setTimeout(function() {
+				setTimeout(function () {
 					_this.cuetools_verify_result = '';
 				}, 3000);
 			})
 		},
-		apply_musicbrainz_cover_to_album: function() {
-			api.post('/api/album/' + this.id + '/apply_musicbrainz_cover', {'mid': this.album_musicbrainz_match.id}).then(response => {
+		apply_musicbrainz_cover_to_album: function () {
+			api.post('/api/album/' + this.id + '/apply_musicbrainz_cover', { 'mid': this.album_musicbrainz_match.id }).then(response => {
 				var _this = this;
 				this.apply_musicbrainz_cover_to_album_result = response.data.status ? 'Added to queue.' : 'Error';
-				setTimeout(function() {
+				setTimeout(function () {
 					_this.apply_musicbrainz_cover_to_album_result = '';
 				}, 3000);
 			})
 		},
-		apply_musicbrainz_to_album: function() {
-			api.post('/api/album/' + this.id + '/apply_musicbrainz', {'mid': this.album_musicbrainz_match.id}).then(response => {
+		apply_musicbrainz_to_album: function () {
+			api.post('/api/album/' + this.id + '/apply_musicbrainz', { 'mid': this.album_musicbrainz_match.id }).then(response => {
 				var _this = this;
 				this.apply_musicbrainz_to_album_result = response.data.status ? 'Done' : 'Error';
-				setTimeout(function() {
+				setTimeout(function () {
 					_this.apply_musicbrainz_to_album_result = '';
 				}, 3000);
 			})
 		},
-		apply_musicbrainz_to_song: function() {
-			api.post('/api/song/' + this.selected_track.id + '/apply_musicbrainz', {'mid': this.track_musicbrainz_match.id}).then(response => {
+		apply_musicbrainz_to_song: function () {
+			api.post('/api/song/' + this.selected_track.id + '/apply_musicbrainz', { 'mid': this.track_musicbrainz_match.id }).then(response => {
 				var _this = this;
 				this.apply_musicbrainz_to_song_result = response.data.status ? 'Done' : 'Error';
-				setTimeout(function() {
+				setTimeout(function () {
 					_this.apply_musicbrainz_to_song_result = '';
 				}, 3000);
 			})
 		},
-		getMusicbrainzArtistName: function(s) {
+		getMusicbrainzArtistName: function (s) {
 			return s.map(x => x.name + x.joinphrase).join('')
 		}
 	}
@@ -970,7 +970,7 @@ const Albums = {
 		</div>
 	</div>
 	`,
-	data: function() {
+	data: function () {
 		return {
 			search: '',
 			count: 0,
@@ -978,13 +978,13 @@ const Albums = {
 			albums: [],
 		}
 	},
-	created: function() {
+	created: function () {
 		this.debouncedSearch = _.debounce(() => { this.cur_page = 1; this.doSearch() }, 150);
 		this.doSearch();
 	},
 	methods: {
-		doSearch: function() {
-			api.get('/api/album/search', {params: {query: this.search, page: this.cur_page - 1}}).then(response => {
+		doSearch: function () {
+			api.get('/api/album/search', { params: { query: this.search, page: this.cur_page - 1 } }).then(response => {
 				this.albums = response.data.data.albums;
 				this.count = response.data.data.count;
 			})
@@ -1030,7 +1030,7 @@ const Songs = {
 		<add-playlist ref="add_playlist"></add-playlist>
 	</div>
 	`,
-	data: function() {
+	data: function () {
 		return {
 			search: '',
 			count: 0,
@@ -1039,13 +1039,13 @@ const Songs = {
 			songs: [],
 		}
 	},
-	created: function() {
+	created: function () {
 		this.debouncedSearch = _.debounce(() => { this.cur_page = 1; this.doSearch() }, 150);
 		this.doSearch();
 	},
 	methods: {
-		doSearch: function() {
-			api.get('/api/song/search', {params: {query: this.search, page: this.cur_page - 1}}).then(response => {
+		doSearch: function () {
+			api.get('/api/song/search', { params: { query: this.search, page: this.cur_page - 1 } }).then(response => {
 				this.songs = response.data.data.songs;
 				this.count = response.data.data.count;
 				this.cur_show_page = this.cur_page;
@@ -1100,7 +1100,7 @@ const Playlist = {
 		<delete-confirm ref="delete_confirm"></delete-confirm>
 	</div>
 	`,
-	data: function() {
+	data: function () {
 		return {
 			id: -1,
 			title: '',
@@ -1112,12 +1112,12 @@ const Playlist = {
 			full_tracklist: ''
 		}
 	},
-	created: function() {
+	created: function () {
 		this.id = this.$route.params.id;
 		this.init();
 	},
 	methods: {
-		init: function() {
+		init: function () {
 			api.get('/api/playlist/' + this.id + '/info/page/' + (this.cur_page - 1)).then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
@@ -1125,7 +1125,7 @@ const Playlist = {
 				document.title = this.title + ' - Playlists';
 			})
 		},
-		edit: function() {
+		edit: function () {
 			this.$router.push({ name: 'playlist_edit', params: { id: this.id } });
 		}
 	}
@@ -1166,7 +1166,7 @@ const PlaylistEdit = {
 		<v-card-text><v-btn class="no-upper-case" outlined @click="submit">Confirm</v-btn></v-card-text>
 	</div>
 	`,
-	data: function() {
+	data: function () {
 		return {
 			id: -1,
 			title: '',
@@ -1174,19 +1174,19 @@ const PlaylistEdit = {
 			tracks: []
 		}
 	},
-	created: function() {
+	created: function () {
 		this.id = this.$route.params.id;
 		this.init();
 	},
 	methods: {
-		init: function() {
+		init: function () {
 			api.get('/api/playlist/' + this.id + '/info').then(response => {
 				for (key in response.data.data)
 					this[key] = response.data.data[key];
 				document.title = this.title + ' - Edit - Playlists';
 			})
 		},
-		submit: function() {
+		submit: function () {
 			var tmp = {
 				title: this.title,
 				description: this.description,
@@ -1222,7 +1222,7 @@ const Playlists = {
 		</div>
 	</div>
 	`,
-	data: function() {
+	data: function () {
 		return {
 			search: '',
 			count: 0,
@@ -1230,13 +1230,13 @@ const Playlists = {
 			playlists: [],
 		}
 	},
-	created: function() {
+	created: function () {
 		this.debouncedSearch = _.debounce(() => { this.cur_page = 1; this.doSearch() }, 150);
 		this.doSearch();
 	},
 	methods: {
-		doSearch: function() {
-			api.get('/api/playlist/search', {params: {query: this.search, page: this.cur_page - 1}}).then(response => {
+		doSearch: function () {
+			api.get('/api/playlist/search', { params: { query: this.search, page: this.cur_page - 1 } }).then(response => {
 				this.playlists = response.data.data.playlists;
 				this.count = response.data.data.count;
 			})
@@ -1322,45 +1322,45 @@ const Manage = {
 		</v-simple-table>
 	</div>
 	`,
-	data: function() {
+	data: function () {
 		return {
-			queue: {current_task: null, done: [], queue: []},
+			queue: { current_task: null, done: [], queue: [] },
 			new_playlist_title: '',
 			working: false,
 		}
 	},
-	created: function() {
+	created: function () {
 		this.working = true;
 		this.init();
 	},
-	destroyed: function() {
+	destroyed: function () {
 		this.working = false
 	},
 	methods: {
-		init: function(setnxt = true) {
+		init: function (setnxt = true) {
 			api.get('/api/queue').then(response => {
 				this.queue = response.data;
 				if (this.working && setnxt) setTimeout(this.init, 2000);
 			})
 		},
-		upload_album: function(file, callback) {
+		upload_album: function (file, callback) {
 			var _this = this;
 			let formData = new FormData();
 			formData.append('file', file);
-			api.post('/api/album/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}}).then(response => {
+			api.post('/api/album/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(response => {
 				callback(response.data);
 				_this.init(false);
 			})
 		},
-		upload_album_remote: function(url, callback) {
+		upload_album_remote: function (url, callback) {
 			var _this = this;
-			api.post('/api/album/upload/remote', {'url': url}).then(response => {
+			api.post('/api/album/upload/remote', { 'url': url }).then(response => {
 				callback(response.data);
 				_this.init(false);
 			})
 		},
-		create_playlist: function() {
-			api.post('/api/playlist/create', {'title': this.new_playlist_title}).then(response => {
+		create_playlist: function () {
+			api.post('/api/playlist/create', { 'title': this.new_playlist_title }).then(response => {
 				this.$router.push({ name: 'playlist', params: { id: response.data.id } })
 			})
 		}
@@ -1377,13 +1377,13 @@ const Auth = {
 		</v-card-text>
 	</div>
 	`,
-	data: function() {
+	data: function () {
 		return {
 			token: '',
 		}
 	},
 	methods: {
-		login: function() {
+		login: function () {
 			setCookie('token', this.token, 100000);
 			axios.get('/api/queue').then(response => {
 				if (!response.data.auth_req) {
@@ -1400,16 +1400,16 @@ const router = new VueRouter({
 	mode: vuerouter_history_mode ? 'history' : 'hash',
 	routes: [
 		{ path: '/', component: Index, name: 'index' },
-		{ path: '/album/:id', component: Album, name: 'album', meta: {title: route => { return route.params.id + ' - Albums' }}},
-		{ path: '/album/:id/edit', component: AlbumEdit, name: 'album_edit', meta: {title: route => { return route.params.id + ' - Edit - Albums' }}},
-		{ path: '/album/:id/manage', component: AlbumManage, name: 'album_manage', meta: {title: route => { return route.params.id + ' - Manage - Albums' }}},
-		{ path: '/albums', component: Albums, name: 'albums', meta: {title: 'Albums' }},
-		{ path: '/songs', component: Songs, name: 'songs', meta: {title: 'Songs' }},
-		{ path: '/playlist/:id', component: Playlist, name: 'playlist', meta: {title: route => { return route.params.id + ' - Playlists' }}},
-		{ path: '/playlist/:id/edit', component: PlaylistEdit, name: 'playlist_edit', meta: {title: route => { return route.params.id + ' - Edit - Playlists' }}},
-		{ path: '/playlists', component: Playlists, name: 'playlists', meta: {title: 'Playlists' }},
-		{ path: '/manage', component: Manage, name: 'manage', meta: {title: 'Manage' }},
-		{ path: '/auth', component: Auth, name: 'auth', meta: {title: 'Auth' }},
+		{ path: '/album/:id', component: Album, name: 'album', meta: { title: route => { return route.params.id + ' - Albums' } } },
+		{ path: '/album/:id/edit', component: AlbumEdit, name: 'album_edit', meta: { title: route => { return route.params.id + ' - Edit - Albums' } } },
+		{ path: '/album/:id/manage', component: AlbumManage, name: 'album_manage', meta: { title: route => { return route.params.id + ' - Manage - Albums' } } },
+		{ path: '/albums', component: Albums, name: 'albums', meta: { title: 'Albums' } },
+		{ path: '/songs', component: Songs, name: 'songs', meta: { title: 'Songs' } },
+		{ path: '/playlist/:id', component: Playlist, name: 'playlist', meta: { title: route => { return route.params.id + ' - Playlists' } } },
+		{ path: '/playlist/:id/edit', component: PlaylistEdit, name: 'playlist_edit', meta: { title: route => { return route.params.id + ' - Edit - Playlists' } } },
+		{ path: '/playlists', component: Playlists, name: 'playlists', meta: { title: 'Playlists' } },
+		{ path: '/manage', component: Manage, name: 'manage', meta: { title: 'Manage' } },
+		{ path: '/auth', component: Auth, name: 'auth', meta: { title: 'Auth' } },
 	]
 })
 
@@ -1421,7 +1421,7 @@ new Vue({
 
 function updateTemporaryTitle(route) {
 	Vue.nextTick(() => {
-		var tmp = typeof(route.meta.title) == 'function' ? route.meta.title(route) : '';
+		var tmp = typeof (route.meta.title) == 'function' ? route.meta.title(route) : '';
 		document.title = tmp || route.meta.title || 'Music library';
 	});
 }

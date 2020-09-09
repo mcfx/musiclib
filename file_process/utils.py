@@ -1,12 +1,14 @@
 import os, shutil
 
-def get_ext(s, _def = ''):
+
+def get_ext(s, _def=''):
 	p = s.rfind('.')
 	if p >= len(s) - 5:
 		return s[p + 1:]
 	return _def
 
-def clear_cache(fo, clear_folders = False):
+
+def clear_cache(fo, clear_folders=False):
 	if fo[-1] != '/':
 		fo += '/'
 	for i in os.listdir(fo):
@@ -14,6 +16,7 @@ def clear_cache(fo, clear_folders = False):
 			os.remove(fo + i)
 		elif clear_folders:
 			shutil.rmtree(fo + i)
+
 
 def purify_filename(s):
 	r = ''

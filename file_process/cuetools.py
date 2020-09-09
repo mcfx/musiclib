@@ -6,6 +6,7 @@ from . import ffmpeg
 from . import utils
 import config
 
+
 def verify(files, trackids):
 	path = config.TEMP_PATH
 	if path[-1] != '/':
@@ -39,6 +40,6 @@ def verify(files, trackids):
 			else:
 				tmp_files.append(fn)
 	cmd = config.ARCUEDOTNET_COMMAND + [tmp_files[0]]
-	p = Popen(cmd, stdout = PIPE, stderr = PIPE)
+	p = Popen(cmd, stdout=PIPE, stderr=PIPE)
 	so, er = p.communicate()
 	return so.decode()

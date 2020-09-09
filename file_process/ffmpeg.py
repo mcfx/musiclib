@@ -2,14 +2,16 @@ from subprocess import Popen, PIPE
 from io import BytesIO
 from PIL import Image
 
+
 def get_space_cnt(s):
 	t = 0
 	while t < len(s) and s[t] == ' ':
 		t += 1
 	return (t, s[t:])
 
+
 def probe(fn):
-	p = Popen(['ffprobe', '-i', fn], stdout = PIPE, stderr = PIPE)
+	p = Popen(['ffprobe', '-i', fn], stdout=PIPE, stderr=PIPE)
 	so, er = p.communicate()
 	s = er[er.find(b'Input #0'):]
 	if len(s) <= 1:
@@ -29,7 +31,7 @@ def probe(fn):
 			t = s2[i][1].split(':', 1)
 			res1[t[0].strip().lower()] = t[1].strip()
 			i += 1
-			while i < len(s2) and s2[i][0] > 4: # throw cue sheet and all multi line metadata
+			while i < len(s2) and s2[i][0] > 4:  # throw cue sheet and all multi line metadata
 				i += 1
 	assert s2[i][0] == 2
 	for j in s2[i][1].split(','):
@@ -42,7 +44,8 @@ def probe(fn):
 	while i < len(s2):
 		if s2[i][1] != 'Metadata:':
 			t = s2[i][1].split(':', 2)
-			if len(t) < 3: t.append('') # fix for strange files
+			if len(t) < 3:
+				t.append('')  # fix for strange files
 			if t[0] == 'Stream #0':
 				res_str.append({'id': t[1], 'type': t[2].strip()})
 				lst = res_str[-1]
@@ -58,23 +61,25 @@ def probe(fn):
 			lst['metadata'][t[0].strip().lower()] = t[1].strip()
 			i += 1
 	res = {'metadata': res1, 'streams': res_str, 'chapters': res_cap}
-	#print(res)
+	# print(res)
 	return res
+
 
 def extract_image(fn):
 	# mjpeg singlejpeg
-	p = Popen(['ffmpeg', '-i', fn, '-vcodec', 'copy', '-an', '-f', 'singlejpeg', '-'], stdout = PIPE, stderr = PIPE)
+	p = Popen(['ffmpeg', '-i', fn, '-vcodec', 'copy', '-an', '-f', 'singlejpeg', '-'], stdout=PIPE, stderr=PIPE)
 	so, er = p.communicate()
 	if len(so):
 		f = BytesIO(so)
 		try:
 			Image.open(f)
-		except: # not a real image
+		except:  # not a real image
 			return None
 		return so
 	return None
 
+
 def convert(src, dst):
 	cmd = ['ffmpeg', '-y', '-i', src, dst]
-	p = Popen(cmd, stdout = PIPE, stderr = PIPE)
+	p = Popen(cmd, stdout=PIPE, stderr=PIPE)
 	so, er = p.communicate()

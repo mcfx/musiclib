@@ -4,12 +4,14 @@ from .utils import get_ext
 
 Image.MAX_IMAGE_PIXELS = None
 
+
 def get_converted_images(fo, dstfo):
 	if fo[-1] != '/':
 		fo += '/'
 	if dstfo[-1] != '/':
 		dstfo += '/'
 	res = []
+
 	def dfs_path(cur_path):
 		for i in os.listdir(fo + cur_path):
 			if os.path.isdir(fo + cur_path + i):
@@ -33,7 +35,7 @@ def get_converted_images(fo, dstfo):
 					im2.save(dstfo + '/' + str(len(res)) + 'l.png')
 					res[-1].append(dstfo + '/' + str(len(res)) + 'l.png')
 			except:
-				#traceback.print_exc()
+				# traceback.print_exc()
 				pass
 	dfs_path('')
 	return res

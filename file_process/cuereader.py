@@ -1,13 +1,15 @@
 from . import auto_decode
 
+
 def unescape(s):
 	if s[0] == '"':
 		return s[1:-1]
 	return s
 
+
 def read_cue(s):
 	s = auto_decode.decode(s)
-	#print(s)
+	# print(s)
 	s = list(filter(len, s.replace('\r', '').split('\n')))
 	g_vars = {}
 	cur_file = ('', '')
@@ -50,7 +52,7 @@ def read_cue(s):
 				pass
 			elif int(x) == 0:
 				#lst['end_time'] = y
-				pass #not compatible with exists software
+				pass  # not compatible with exists software
 			elif int(x) == 1:
 				cur['start_time'] = y
 				if 'end_time' not in lst:

@@ -16,6 +16,7 @@ import files
 import db
 import config
 
+
 def get_duration(s):
 	t = s['metadata']['duration']
 	if '.' in t:
@@ -23,6 +24,7 @@ def get_duration(s):
 	if t[:3] == '00:':
 		t = t[3:]
 	return t
+
 
 def album_init(fo):
 	if fo[-1] != '/':
@@ -79,6 +81,7 @@ def album_init(fo):
 		db.execute("update songs set file = %(fn)s where id = %(id)s", {'id': songid, 'fn': fn})
 	return True, albumid
 
+
 def add_scans(fo, packname, album_id):
 	if packname == '':
 		packname = fo.rstrip('/').rsplit('/', 1)[1]
@@ -95,6 +98,7 @@ def add_scans(fo, packname, album_id):
 	imgfs = json.dumps(img_files)
 	db.execute("insert into scans(name, album_id, files) values (%(name)s, %(album_id)s, %(files)s)", {'name': packname, 'album_id': album_id, 'files': imgfs})
 	return True
+
 
 def gen_final_flac(album):
 	dstfo = config.TEMP_PATH
@@ -119,12 +123,14 @@ def gen_final_flac(album):
 		tf = files.add_file(fn)
 		db.execute("update songs set file_flac = %(fn)s where id = %(id)s", {'id': album.tracks[i].id, 'fn': tf})
 
+
 def update_extra(table, id, key, value):
 	old = db.select_first("select extra_data from " + table + " where id = %(id)s", {'id': id})[0]
 	cur = json.loads(old)
 	cur[key] = value
-	cur = json.dumps(cur, separators = (',', ':'))
+	cur = json.dumps(cur, separators=(',', ':'))
 	db.execute("update " + table + " set extra_data = %(ed)s where id = %(id)s", {'id': id, 'ed': cur})
+
 
 def match_acoustid(album):
 	paths = []
@@ -136,6 +142,7 @@ def match_acoustid(album):
 	for i in range(len(album.tracks)):
 		track = album.tracks[i]
 		update_extra('songs', track.id, 'musicbrainz', res[i])
+
 
 def cuetools_verify(album):
 	paths = []
@@ -152,6 +159,7 @@ def cuetools_verify(album):
 	res = cuetools.verify(paths, ids)
 	update_extra('albums', album.id, 'cuetools', res)
 
+
 def set_musicbrainz_cover(id, mid):
 	cover = mb_get_cover(mid)
 	if cover is None:
@@ -162,17 +170,20 @@ def set_musicbrainz_cover(id, mid):
 	db.execute("update albums set cover_files = %(cf)s where id = %(id)s", {'id': id, 'cf': nc})
 	return True, None
 
+
 ft_lock = RLock()
 ft_queue = []
 ft_queue_ext = []
 ft_done = []
 ft_current_task = None
 
-def add_file_task(task, task_ext = None):
+
+def add_file_task(task, task_ext=None):
 	ft_lock.acquire()
 	ft_queue.append(task)
 	ft_queue_ext.append(task_ext)
 	ft_lock.release()
+
 
 def get_file_queue():
 	ft_lock.acquire()
@@ -181,22 +192,25 @@ def get_file_queue():
 	ft_lock.release()
 	return {'queue': res, 'done': resd, 'current_task': ft_current_task}
 
-def decompress(archive_path, decompress_path, password = None):
+
+def decompress(archive_path, decompress_path, password=None):
 	cmd = ['7z', 'x', archive_path, '-o' + decompress_path]
 	if password is not None:
 		cmd.append('-p' + password)
 	res = []
-	p = subprocess.Popen(cmd, stderr = subprocess.PIPE, stdout = subprocess.PIPE)
+	p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+
 	def work():
 		stdout, stderr = p.communicate()
 		res.append((p.returncode, stdout, stderr))
-	thread = Thread(target = work)
+	thread = Thread(target=work)
 	thread.start()
-	thread.join(600) # enough to decompress most files (60s too short for some files)
+	thread.join(600)  # enough to decompress most files (60s too short for some files)
 	if thread.is_alive():
 		p.terminate()
 		return False, b'Timeout while running 7z'
 	return res[0][0] == 0, res[0][2].decode('utf-8', 'ignore')
+
 
 def guess_pw(path):
 	tmp = path.rsplit('.', 1)[0]
@@ -204,24 +218,30 @@ def guess_pw(path):
 		return None
 	return tmp.rsplit('pw_', 1)[1]
 
+
 def detect_path(path):
 	t = os.listdir(path)
 	if len(t) == 1 and os.path.isdir(path + '/' + t[0]):
 		return path + '/' + t[0]
 	return path
 
+
 def try_decompress(archive_path):
 	depath = config.TEMP_PATH
 	if depath[-1] != '/':
 		depath += '/'
 	depath += 'decompress'
-	res, err = decompress(archive_path, depath, '') # None pw causes infinite running
-	if res: return True, err, detect_path(depath)
+	res, err = decompress(archive_path, depath, '')  # None pw causes infinite running
+	if res:
+		return True, err, detect_path(depath)
 	pw = guess_pw(archive_path)
-	if pw is None: return res, err, ''
+	if pw is None:
+		return res, err, ''
 	res2, err2 = decompress(archive_path, depath, pw)
-	if res2: return True, err2, detect_path(depath)
+	if res2:
+		return True, err2, detect_path(depath)
 	return res, err, ''
+
 
 def backup_album_file(path, album_id, filename):
 	cur_date = datetime.datetime.now().strftime('%Y%m%d')
@@ -231,6 +251,7 @@ def backup_album_file(path, album_id, filename):
 		os.mkdir(fo)
 	shutil.move(path, config.BACKUP_PATH.rstrip('\\').rstrip('/') + '/' + npath)
 	db.execute("insert into albums_files(album_id, name, file) values(%(album_id)s, %(name)s, %(file)s)", {'album_id': album_id, 'name': filename, 'file': npath})
+
 
 def file_process_thread():
 	global ft_queue, ft_current_task, ft_done
@@ -301,7 +322,7 @@ def file_process_thread():
 				ft_done.append({'task': task, 'result': task_result, 'done_time': int(time.time())})
 				ft_lock.release()
 			elif task['type'] == 'new_album_remote':
-				r = requests.get(task['path'], timeout = 60)
+				r = requests.get(task['path'], timeout=60)
 				open(task['npath'], 'wb').write(r.content)
 				add_file_task({'type': 'new_album', 'path': task['npath'], 'filename': task['filename']})
 				ft_lock.acquire()
@@ -349,16 +370,19 @@ def file_process_thread():
 				if os.path.exists(task['path']):
 					os.remove(task['path'])
 
+
 def start_process_thread(app):
 	global tmp_folders
 	tmp_folders = []
+
 	def run():
 		with app.app_context():
 			file_process_thread()
 	fo = config.TEMP_PATH
 	if fo[-1] != '/':
 		fo += '/'
-	def md(s, add_autorem = True):
+
+	def md(s, add_autorem=True):
 		global tmp_folders
 		if not os.path.exists(fo + s):
 			os.mkdir(fo + s)
@@ -371,6 +395,6 @@ def start_process_thread(app):
 	md('scans')
 	md('upload', False)
 	md('verify')
-	ft = Thread(target = run)
+	ft = Thread(target=run)
 	ft.setDaemon(True)
 	ft.start()

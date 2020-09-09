@@ -20,17 +20,19 @@ except:
 
 db = SQLAlchemy(app)
 
+
 class File(db.Model):
 	__tablename__ = 'files'
-	sha512 = db.Column(db.LargeBinary(64), primary_key = True)
+	sha512 = db.Column(db.LargeBinary(64), primary_key=True)
 	count = db.Column(db.Integer)
 
-def add_bytes(s, ext = ''):
+
+def add_bytes(s, ext=''):
 	sha512 = hashlib.sha512(s).digest()
 	hexhs = binascii.hexlify(sha512).decode()
 	file = File.query.filter(File.sha512 == sha512).first()
 	if file is None:
-		db.session.add(File(sha512 = sha512, count = 1))
+		db.session.add(File(sha512=sha512, count=1))
 		db.session.commit()
 		fo = config.STORAGE_PATH + '/' + hexhs[:2]
 		fn = fo + '/' + hexhs[2:]
@@ -42,21 +44,24 @@ def add_bytes(s, ext = ''):
 		db.session.commit()
 	return hexhs + '.' + ext
 
+
 db_lock = RLock()
+
 
 def add_file(tmp_path):
 	hs = hashlib.sha512()
 	with open(tmp_path, 'rb') as f:
 		while True:
 			t = f.read(131072)
-			if t == b'': break
+			if t == b'':
+				break
 			hs.update(t)
 	sha512 = hs.digest()
 	hexhs = binascii.hexlify(sha512).decode()
 	db_lock.acquire()
 	file = File.query.filter(File.sha512 == sha512).first()
 	if file is None:
-		db.session.add(File(sha512 = sha512, count = 1))
+		db.session.add(File(sha512=sha512, count=1))
 		db.session.commit()
 		db_lock.release()
 		fo = config.STORAGE_PATH + '/' + hexhs[:2]
@@ -70,7 +75,8 @@ def add_file(tmp_path):
 		db_lock.release()
 	return hexhs + '.' + get_ext(tmp_path, '')
 
-def del_file(hash, throw = True):
+
+def del_file(hash, throw=True):
 	hash = purify_hash(hash)
 	sha512 = binascii.unhexlify(hash)
 	db_lock.acquire()
@@ -89,6 +95,7 @@ def del_file(hash, throw = True):
 	db.session.commit()
 	db_lock.release()
 
+
 def purify_hash(s):
 	if '.' not in s:
 		return s
@@ -96,6 +103,7 @@ def purify_hash(s):
 	if p >= len(s) - 5:
 		return s[:p]
 	return s
+
 
 def get_content(hash):
 	hash = purify_hash(hash)
@@ -105,6 +113,7 @@ def get_content(hash):
 		return open(fn, 'rb').read()
 	return None
 
+
 def get_path(hash):
 	hash = purify_hash(hash)
 	fo = config.STORAGE_PATH + '/' + hash[:2]
@@ -113,19 +122,23 @@ def get_path(hash):
 		return fn
 	return None
 
+
 def sign(hash, expire):
 	return hashlib.md5(config.STORAGE_SALT + str(expire).encode() + binascii.unhexlify(hash) + config.STORAGE_SALT).hexdigest()
 
-def get_link(hash, dlname = 'file', expire = 3600):
+
+def get_link(hash, dlname='file', expire=3600):
 	hash = purify_hash(hash)
 	dlname = dlname.replace('/', '／').replace('?', '？')
 	expire += int(time.time())
 	sig = sign(hash, expire)
 	return '/file/%s/%s?expire=%d&sign=%s' % (hash, dlname, expire, sig)
 
+
 def get_hash_by_link(link):
 	s = link.split('?')[0].split('/')
 	return s[2] + '.' + get_ext(s[3])
+
 
 @app.route('/file/<hash>/<dlname>')
 @skip_error
@@ -146,7 +159,8 @@ def get_file(hash, dlname):
 	hash = binascii.hexlify(hash).decode()
 	fo = config.STORAGE_PATH + '/' + hash[:2]
 	fn = hash[2:]
-	return send_from_directory(fo, fn, as_attachment = True, attachment_filename = dlname)
+	return send_from_directory(fo, fn, as_attachment=True, attachment_filename=dlname)
+
 
 @app.route('/filebk/<date>/<name>')
 @skip_error
@@ -158,4 +172,4 @@ def get_file_backup(date, name):
 	fn = name
 	if fn == '' or not os.path.exists(fo + '/' + fn):
 		return ''
-	return send_from_directory(fo, fn, as_attachment = True, attachment_filename = dlname)
+	return send_from_directory(fo, fn, as_attachment=True, attachment_filename=dlname)

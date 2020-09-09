@@ -26,35 +26,39 @@ with app.app_context():
 	from file_add import add_file_task, get_file_queue, start_process_thread
 	from flask_wrappers import skip_error_and_auth
 	import files
-	
+
 	start_process_thread(app)
+
 
 class CompactArray(types.TypeDecorator):
 	impl = types.TEXT
-	
-	def __init__(self, basetype = str):
+
+	def __init__(self, basetype=str):
 		types.TypeDecorator.__init__(self)
 		self.basetype = basetype
-	
+
 	def process_bind_param(self, value, dialect):
 		return ','.join(map(str, value))
-	
+
 	def process_result_value(self, value, dialect):
-		if len(value) == 0: return []
+		if len(value) == 0:
+			return []
 		return list(map(self.basetype, value.split(',')))
 
-class JsonString(types.TypeDecorator): # do not use JSON of sqlalchemy for convenience
+
+class JsonString(types.TypeDecorator):  # do not use JSON of sqlalchemy for convenience
 	impl = types.TEXT
-	
+
 	def process_bind_param(self, value, dialect):
-		return json.dumps(value, separators = (',', ':'))
-	
+		return json.dumps(value, separators=(',', ':'))
+
 	def process_result_value(self, value, dialect):
 		return json.loads(value)
 
+
 class Album(db.Model):
 	__tablename__ = 'albums'
-	id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 	title = db.Column(db.String)
 	release_date = db.Column(db.Date)
 	artist = db.Column(db.String)
@@ -69,9 +73,10 @@ class Album(db.Model):
 	comments = db.Column(db.String)
 	extra_data = db.Column(JsonString)
 
+
 class Song(db.Model):
 	__tablename__ = 'songs'
-	id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 	album_id = db.Column(db.Integer)
 	track = db.Column(db.Integer)
 	title = db.Column(db.String)
@@ -84,33 +89,39 @@ class Song(db.Model):
 	file_flac = db.Column(db.String)
 	extra_data = db.Column(JsonString)
 
+
 class Scan(db.Model):
 	__tablename__ = 'scans'
-	id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 	name = db.Column(db.String)
 	album_id = db.Column(db.Integer)
 	files = db.Column(db.String)
 
+
 class Playlist(db.Model):
 	__tablename__ = 'playlists'
-	id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 	title = db.Column(db.String)
 	description = db.Column(db.String)
 	tracklist = db.Column(CompactArray(int))
 	last_update = db.Column(db.Integer)
 
+
 class AlbumFile(db.Model):
 	__tablename__ = 'albums_files'
-	id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+	id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 	album_id = db.Column(db.Integer)
 	name = db.Column(db.String)
 	file = db.Column(db.String)
 
+
 class KeepSameSerialization(fields.Field):
 	def _serialize(self, value, attr, obj):
 		return value
+
 	def _deserialize(self, value, attr, obj):
 		return value
+
 
 class AlbumSchema(SQLAlchemySchema):
 	class Meta:
@@ -130,6 +141,7 @@ class AlbumSchema(SQLAlchemySchema):
 	cover_files = KeepSameSerialization()
 	comments = auto_field()
 
+
 class SongSchema(SQLAlchemySchema):
 	class Meta:
 		model = Song
@@ -144,18 +156,22 @@ class SongSchema(SQLAlchemySchema):
 	quality = auto_field()
 	quality_details = auto_field()
 
+
 album_schema = AlbumSchema()
 song_schema = SongSchema()
+
 
 @app.route('/')
 def send_index():
 	if config.DEBUG:
 		return open('static/index.html').read().replace('app.js', 'app.js?' + str(random.random())).replace('app.css', 'app.css?' + str(random.random())).replace('config.js', 'config.js?' + str(random.random()))
-	return app.send_static_file('index.html') # should be handled by nginx
+	return app.send_static_file('index.html')  # should be handled by nginx
+
 
 @app.route('/config.js')
 def get_config():
 	return 'const vuerouter_history_mode = %s\nconst results_per_page = %d' % (str(config.VUEROUTER_HISTORY_MODE).lower(), config.RESULTS_PER_PAGE)
+
 
 @app.route('/api/album/search')
 @skip_error_and_auth
@@ -175,6 +191,7 @@ def search_album():
 		res.append(tmp)
 	return jsonify({'status': True, 'data': {'count': count, 'albums': res}})
 
+
 @app.route('/api/album/random')
 @skip_error_and_auth
 def random_album():
@@ -188,6 +205,7 @@ def random_album():
 		tmp['cover_files'] = list(map(lambda x: files.get_link(x, 'cover.jpg'), tmp['cover_files']))
 		res.append(tmp)
 	return jsonify({'status': True, 'data': res})
+
 
 @app.route('/api/album/<id>/info')
 @skip_error_and_auth
@@ -207,6 +225,7 @@ def get_album_info(id):
 	if request.values.get('extra_data') is not None:
 		res['extra_data'] = album.extra_data
 	return jsonify({'status': True, 'data': res})
+
 
 @app.route('/api/album/<id>/update', methods=['POST'])
 @skip_error_and_auth
@@ -235,6 +254,7 @@ def update_album_info(id):
 	db.session.commit()
 	return jsonify({'status': True})
 
+
 @app.route('/api/album/<id>/update_covers', methods=['POST'])
 @skip_error_and_auth
 def update_album_covers(id):
@@ -248,6 +268,7 @@ def update_album_covers(id):
 	album.cover_files = nc
 	db.session.commit()
 	return jsonify({'status': True})
+
 
 @app.route('/api/album/<id>/scans')
 @skip_error_and_auth
@@ -266,6 +287,7 @@ def get_album_scans(id):
 		res.append({'id': scan.id, 'packname': scan.name, 'files': tmp})
 	return jsonify({'status': True, 'data': res})
 
+
 @app.route('/api/album/<id>/files')
 @skip_error_and_auth
 def get_album_files(id):
@@ -279,7 +301,8 @@ def get_album_files(id):
 		res.append({'id': fl.id, 'name': fl.name, 'file': fl.file})
 	return jsonify({'status': True, 'data': res})
 
-@app.route('/api/album/<id>/gen_flac', methods = ['POST'])
+
+@app.route('/api/album/<id>/gen_flac', methods=['POST'])
 @skip_error_and_auth
 def album_gen_flac(id):
 	id = int(id)
@@ -293,7 +316,8 @@ def album_gen_flac(id):
 	add_file_task({'type': 'album_gen_flac', 'album_id': id}, album)
 	return jsonify({'status': True})
 
-@app.route('/api/album/<id>/match_acoustid', methods = ['POST'])
+
+@app.route('/api/album/<id>/match_acoustid', methods=['POST'])
 @skip_error_and_auth
 def album_match_acoustid(id):
 	id = int(id)
@@ -305,7 +329,8 @@ def album_match_acoustid(id):
 	add_file_task({'type': 'album_acoustid', 'album_id': id}, album)
 	return jsonify({'status': True})
 
-@app.route('/api/album/<id>/set_musicbrainz_id', methods = ['POST'])
+
+@app.route('/api/album/<id>/set_musicbrainz_id', methods=['POST'])
 @skip_error_and_auth
 def album_set_musicbrainz_id(id):
 	id = int(id)
@@ -316,7 +341,8 @@ def album_set_musicbrainz_id(id):
 	add_file_task({'type': 'album_musicbrainz_id', 'album_id': id, 'mid': mid})
 	return jsonify({'status': True})
 
-@app.route('/api/album/<id>/cuetools_verify', methods = ['POST'])
+
+@app.route('/api/album/<id>/cuetools_verify', methods=['POST'])
 @skip_error_and_auth
 def album_cuetools_verify(id):
 	id = int(id)
@@ -330,7 +356,8 @@ def album_cuetools_verify(id):
 	add_file_task({'type': 'album_cuetools', 'album_id': id}, album)
 	return jsonify({'status': True})
 
-@app.route('/api/album/<id>/apply_musicbrainz', methods = ['POST'])
+
+@app.route('/api/album/<id>/apply_musicbrainz', methods=['POST'])
 @skip_error_and_auth
 def apply_musicbrainz_to_album(id):
 	id = int(id)
@@ -356,7 +383,8 @@ def apply_musicbrainz_to_album(id):
 	db.session.commit()
 	return jsonify({'status': True})
 
-@app.route('/api/album/<id>/apply_musicbrainz_cover', methods = ['POST'])
+
+@app.route('/api/album/<id>/apply_musicbrainz_cover', methods=['POST'])
 @skip_error_and_auth
 def apply_musicbrainz_cover_to_album(id):
 	id = int(id)
@@ -367,7 +395,8 @@ def apply_musicbrainz_cover_to_album(id):
 	add_file_task({'type': 'album_musicbrainz_cover', 'album_id': id, 'mid': mid})
 	return jsonify({'status': True})
 
-@app.route('/api/album/<id>/upload/<tp>', methods = ['POST'])
+
+@app.route('/api/album/<id>/upload/<tp>', methods=['POST'])
 @skip_error_and_auth
 def album_upload_files(id, tp):
 	id = int(id)
@@ -390,7 +419,8 @@ def album_upload_files(id, tp):
 	add_file_task({'type': 'album_' + tp, 'album_id': id, 'path': fp, 'filename': ofn})
 	return jsonify({'status': True, 'msg': 'Added to queue'})
 
-@app.route('/api/album/<id>/del', methods = ['POST'])
+
+@app.route('/api/album/<id>/del', methods=['POST'])
 @skip_error_and_auth
 def album_del(id):
 	id = int(id)
@@ -419,7 +449,8 @@ def album_del(id):
 	db.session.commit()
 	return jsonify({'status': True})
 
-@app.route('/api/album/upload', methods = ['POST'])
+
+@app.route('/api/album/upload', methods=['POST'])
 @skip_error_and_auth
 def album_upload():
 	if 'file' not in request.files:
@@ -436,7 +467,8 @@ def album_upload():
 	add_file_task({'type': 'new_album', 'path': fp, 'filename': ofn})
 	return jsonify({'status': True, 'msg': 'Added to queue'})
 
-@app.route('/api/album/upload/remote', methods = ['POST'])
+
+@app.route('/api/album/upload/remote', methods=['POST'])
 @skip_error_and_auth
 def album_upload_remote():
 	url = request.json['url']
@@ -453,7 +485,8 @@ def album_upload_remote():
 	add_file_task({'type': 'new_album_remote', 'path': url, 'filename': fn, 'npath': fp})
 	return jsonify({'status': True, 'msg': 'Added to queue'})
 
-@app.route('/api/album/<id>/cover/<cn>/del', methods = ['POST'])
+
+@app.route('/api/album/<id>/cover/<cn>/del', methods=['POST'])
 @skip_error_and_auth
 def album_del_cover(id, cn):
 	id = int(id)
@@ -474,6 +507,7 @@ def album_del_cover(id, cn):
 	db.session.commit()
 	return jsonify({'status': True})
 
+
 @app.route('/api/song/search')
 @skip_error_and_auth
 def search_song():
@@ -493,6 +527,7 @@ def search_song():
 		res.append(tmp)
 	return jsonify({'status': True, 'data': {'count': count, 'songs': res}})
 
+
 @app.route('/api/song/random')
 @skip_error_and_auth
 def random_song():
@@ -509,11 +544,13 @@ def random_song():
 		res.append(tmp)
 	return jsonify({'status': True, 'data': res})
 
+
 def get_song_filename(song):
 	t = song.artist + ' - ' + song.title
 	if len(t) < 80:
 		return t
 	return song.title
+
 
 @app.route('/api/song/<id>/link')
 @skip_error_and_auth
@@ -529,7 +566,8 @@ def get_song_link(id):
 		data[key] = files.get_link(mfn, fn + '.' + get_ext(mfn, ''), 86400) if mfn else ''
 	return jsonify({'status': True, 'data': data})
 
-@app.route('/api/song/<id>/apply_musicbrainz', methods = ['POST'])
+
+@app.route('/api/song/<id>/apply_musicbrainz', methods=['POST'])
 @skip_error_and_auth
 def apply_musicbrainz_to_song(id):
 	id = int(id)
@@ -545,9 +583,10 @@ def apply_musicbrainz_to_song(id):
 			return jsonify({'status': True})
 	return jsonify({'status': False})
 
+
 @app.route('/api/songs/<ids>/play')
 @skip_error_and_auth
-def get_songs_play(ids, full = False):
+def get_songs_play(ids, full=False):
 	ids = list(map(int, ids.split(',')))
 	res_files = []
 	covers = []
@@ -579,12 +618,14 @@ def get_songs_play(ids, full = False):
 		res['artists'] = artists
 	return jsonify({'status': True, 'data': res})
 
+
 @app.route('/api/songs/<ids>/play/full')
 @skip_error_and_auth
 def get_songs_play_full(ids):
 	return get_songs_play(ids, True)
 
-@app.route('/api/scan/<id>/update_name', methods = ['POST'])
+
+@app.route('/api/scan/<id>/update_name', methods=['POST'])
 @skip_error_and_auth
 def update_scan_name(id):
 	scan = Scan.query.filter(Scan.id == id).first()
@@ -594,7 +635,8 @@ def update_scan_name(id):
 	db.session.commit()
 	return jsonify({'status': True})
 
-@app.route('/api/scan/<id>/del', methods = ['POST'])
+
+@app.route('/api/scan/<id>/del', methods=['POST'])
 @skip_error_and_auth
 def scan_del(id):
 	id = int(id)
@@ -612,6 +654,7 @@ def scan_del(id):
 	db.session.commit()
 	return jsonify({'status': True})
 
+
 @app.route('/api/log/<id>')
 @skip_error_and_auth
 def get_log(id):
@@ -620,12 +663,14 @@ def get_log(id):
 	log = auto_decode.decode(files.get_content(id))
 	return jsonify({'status': True, 'data': log})
 
+
 @app.route('/api/log/<id>/download')
 @skip_error_and_auth
 def get_log_download(id):
 	if re.match(r'^[a-zA-Z0-9\._]+$', id) is None:
 		return jsonify({'status': False})
 	return jsonify({'status': True, 'data': files.get_link(id, 'album.log')})
+
 
 @app.route('/api/playlist/search')
 @skip_error_and_auth
@@ -641,9 +686,10 @@ def search_playlist():
 	res = list(map(lambda x: {'id': x.id, 'title': x.title, 'description': x.description, 'len_tracks': len(x.tracklist)}, playlists))
 	return jsonify({'status': True, 'data': {'count': count, 'playlists': res}})
 
+
 @app.route('/api/playlist/<id>/info')
 @skip_error_and_auth
-def get_playlist_info(id, page = -1):
+def get_playlist_info(id, page=-1):
 	id = int(id)
 	playlist = Playlist.query.filter(Playlist.id == id).first()
 	if playlist is None:
@@ -663,6 +709,7 @@ def get_playlist_info(id, page = -1):
 		res['tracks'].append(song)
 	return jsonify({'status': True, 'data': res})
 
+
 @app.route('/api/playlist/<id>/info/page/<page>')
 @skip_error_and_auth
 def get_playlist_info_page(id, page):
@@ -671,7 +718,8 @@ def get_playlist_info_page(id, page):
 		return jsonify({'status': False})
 	return get_playlist_info(id, page)
 
-@app.route('/api/playlist/<id>/addtrack', methods = ['POST'])
+
+@app.route('/api/playlist/<id>/addtrack', methods=['POST'])
 @skip_error_and_auth
 def playlist_addtrack(id):
 	id = int(id)
@@ -691,7 +739,8 @@ def playlist_addtrack(id):
 	db.session.commit()
 	return jsonify({'status': True})
 
-@app.route('/api/playlist/<id>/update', methods = ['POST'])
+
+@app.route('/api/playlist/<id>/update', methods=['POST'])
 @skip_error_and_auth
 def update_playlist_info(id):
 	id = int(id)
@@ -702,7 +751,7 @@ def update_playlist_info(id):
 	try:
 		playlist.title = s['title']
 		playlist.description = s['description']
-		tr = [] if s['tracks']=='' else list(map(int, s['tracks'].split(',')))
+		tr = [] if s['tracks'] == '' else list(map(int, s['tracks'].split(',')))
 		for i in tr:
 			song = Song.query.filter(Song.id == i).first()
 			if song is None:
@@ -715,7 +764,8 @@ def update_playlist_info(id):
 	db.session.commit()
 	return jsonify({'status': True})
 
-@app.route('/api/playlist/<id>/del', methods = ['POST'])
+
+@app.route('/api/playlist/<id>/del', methods=['POST'])
 @skip_error_and_auth
 def playlist_del(id):
 	id = int(id)
@@ -726,22 +776,25 @@ def playlist_del(id):
 	db.session.commit()
 	return jsonify({'status': True})
 
-@app.route('/api/playlist/create', methods = ['POST'])
+
+@app.route('/api/playlist/create', methods=['POST'])
 @skip_error_and_auth
 def create_playlist():
 	s = request.json
 	if 'title' not in s:
 		return jsonify({'status': False})
 	title = s['title']
-	pl = Playlist(title = title, description = '', tracklist = '', last_update = 0)
+	pl = Playlist(title=title, description='', tracklist='', last_update=0)
 	db.session.add(pl)
 	db.session.commit()
 	return jsonify({'status': True, 'id': pl.id})
+
 
 @app.route('/api/queue')
 @skip_error_and_auth
 def get_queue_stat():
 	return jsonify(get_file_queue())
 
+
 if __name__ == '__main__':
-	app.run(host = '127.0.0.1', port = 1928, debug = config.DEBUG)
+	app.run(host='127.0.0.1', port=1928, debug=config.DEBUG)
