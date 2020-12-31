@@ -765,6 +765,19 @@ def update_playlist_info(id):
 	return jsonify({'status': True})
 
 
+@app.route('/api/playlist/<id>/duplicate', methods=['POST'])
+@skip_error_and_auth
+def playlist_duplicate(id):
+	id = int(id)
+	playlist = Playlist.query.filter(Playlist.id == id).first()
+	if playlist is None:
+		return jsonify({'status': False})
+	newpl = Playlist(title=playlist.title + ' copy', description=playlist.description, tracklist=playlist.tracklist, last_update=int(time.time()))
+	db.session.add(newpl)
+	db.session.commit()
+	return jsonify({'status': True, 'id': newpl.id})
+
+
 @app.route('/api/playlist/<id>/del', methods=['POST'])
 @skip_error_and_auth
 def playlist_del(id):

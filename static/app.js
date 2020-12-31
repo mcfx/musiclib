@@ -1061,6 +1061,7 @@ const Playlist = {
 			<v-card-title>
 				{{ title }} &nbsp;
 				<v-btn text icon small><v-icon @click="edit">mdi-pencil</v-icon></v-btn>
+				<v-btn text icon small><v-icon @click="duplicate">mdi-content-copy</v-icon></v-btn>
 				<v-btn text icon small @click="$refs.delete_confirm.start('playlist', id, title, {name: 'playlists'})"><v-icon>mdi-delete</v-icon></v-btn>
 			</v-card-title>
 			<v-card-text> {{ description }} </v-card-text>
@@ -1127,6 +1128,13 @@ const Playlist = {
 		},
 		edit: function () {
 			this.$router.push({ name: 'playlist_edit', params: { id: this.id } });
+		},
+		duplicate: function () {
+			api.post('/api/playlist/' + this.id + '/duplicate').then(response => {
+				this.id = response.data.id;
+				this.init();
+				this.$router.push({ name: 'playlist', params: { id: response.data.id } });
+			})
 		}
 	}
 }
