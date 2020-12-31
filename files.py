@@ -129,7 +129,7 @@ def sign(hash, expire):
 
 def get_link(hash, dlname='file', expire=3600):
 	hash = purify_hash(hash)
-	dlname = dlname.replace('/', '／').replace('?', '？')
+	dlname = dlname.replace('/', '／').replace('?', '？').replace('#', '＃')
 	expire += int(time.time())
 	sig = sign(hash, expire)
 	return '/file/%s/%s?expire=%d&sign=%s' % (hash, dlname, expire, sig)
