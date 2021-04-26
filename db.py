@@ -3,7 +3,7 @@ import config
 
 
 def getdb():
-	return pymysql.connect(config.SQL_ADDR, config.SQL_USER, config.SQL_PASSWORD, config.SQL_DATABASE)
+	return pymysql.connect(host=config.SQL_ADDR, user=config.SQL_USER, password=config.SQL_PASSWORD, db=config.SQL_DATABASE)
 
 
 db = getdb()

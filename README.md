@@ -11,7 +11,7 @@ Personal music library.
 ## Install
 First install the following softwares: `python3 python3-pip python3-dev ffmpeg shntool p7zip-full flac`. It you are Debian or Ubuntu user, just add `apt install` in front of the list.
 
-Then install the following python packages using pip: `pip3 install mutagen flask flask-sqlalchemy marshmallow-sqlalchemy pymysql mysql-connector chardet pillow pyacoustid`.
+Then install the following python packages using `pip3 install -r requirements.txt`.
 
 Create a database in your MariaDB server, initialize the database with [musiclib.sql](musiclib.sql). Fill the information in config.py (rename from config_sample.py).
 
