@@ -23,5 +23,5 @@ Finally, you can run `web.py`. (Or you can configure uwsgi if you want)
 - Some tak files are not supported by FFmpeg. You may convert them info flac before uploading.
 
 ## Todo
-- Batch import
+- ~~Batch import~~ Based on my usage over 1.5 yr, this functionality is not necessary
 - Share albums, songs, playlists with others
