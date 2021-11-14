@@ -149,6 +149,8 @@ def get_file(hash, dlname):
 		return ''
 	if sign(hash, expire) != sig:
 		return ''
+	if time.time() > expire:
+		return ''
 	try:
 		hash = binascii.unhexlify(hash)
 	except:
