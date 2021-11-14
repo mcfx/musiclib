@@ -7,3 +7,4 @@ Pillow
 pyacoustid
 PyMySQL
 requests
+mutagen
