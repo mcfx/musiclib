@@ -66,8 +66,7 @@ def probe(fn):
 
 
 def extract_image(fn):
-	# mjpeg singlejpeg
-	p = Popen(['ffmpeg', '-i', fn, '-vcodec', 'copy', '-an', '-f', 'singlejpeg', '-'], stdout=PIPE, stderr=PIPE)
+	p = Popen(['ffmpeg', '-i', fn, '-vcodec', 'copy', '-an', '-f', 'mjpeg', '-'], stdout=PIPE, stderr=PIPE)
 	so, er = p.communicate()
 	if len(so):
 		f = BytesIO(so)
